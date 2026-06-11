@@ -68,6 +68,13 @@ h4 {
   letter-spacing: -0.005em;
 }
 
+/* hero name display font (Space Grotesk) */
+.font-hero {
+  font-family: var(--font-hero), var(--font-rajdhani), ui-sans-serif, system-ui,
+    sans-serif;
+  letter-spacing: -0.02em;
+}
+
 /* hide scrollbars on the horizontal nav (keep it scrollable) */
 .no-scrollbar {
   -ms-overflow-style: none;

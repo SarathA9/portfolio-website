@@ -8,15 +8,14 @@ export const profile = {
     "AI / ML Engineer",
     "Full-Stack Developer",
     "Computer Vision Engineer",
-    "Robotics & Signal Processing Engineer",
   ],
   kicker: "M.Sc. Artificial Intelligence · OTH Amberg-Weiden",
   headline: "I build intelligent software.",
   tagline:
-    "From real-time web platforms to applied machine learning and robotics — I take problems end-to-end, from data and models to interfaces people actually enjoy using.",
+    "From real-time web platforms to applied machine learning and robotics. I take problems end-to-end, from data and models to interfaces people actually enjoy using.",
   location: "Nuremberg, Germany",
   available: "Open to working-student & internship roles in AI / software",
-  email: "sarathofficial920@gmail.com",
+  email: "adukkadukkamsarath@gmail.com",
   academicEmail: "s.adukkadukkam@oth-aw.de",
   address: "Nuremberg, Germany",
   linkedin: "https://www.linkedin.com/in/sarath-adukkadukkam",
@@ -57,7 +56,7 @@ export const experience: Experience[] = [
   {
     role: "Freelance Software Developer",
     company: "Self-employed",
-    location: "Kasaragod, India",
+    location: "Nuremberg, Germany",
     period: "Aug 2024 – Present",
     points: [
       "Deliver full-stack web applications for clients using React, Node.js and MySQL.",

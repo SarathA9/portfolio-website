@@ -26,7 +26,7 @@ export default function Hero() {
             </Reveal>
 
             <Reveal delay={120}>
-              <h1 className="mt-3 text-4xl font-bold leading-[1.04] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+              <h1 className="font-hero mt-3 text-4xl font-bold leading-[1.04] tracking-tight text-ink sm:text-6xl lg:text-7xl">
                 Sarath
                 <br />
                 <span className="text-gradient">Adukkadukkam</span>
