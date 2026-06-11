@@ -1,0 +1,403 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Design tokens — "Nebula" dark / neon theme (Tailwind v4)
+   ============================================================ */
+@theme {
+  /* surfaces (named "night" — avoid clashing with Tailwind's text-base font size) */
+  --color-night: #05060f;
+  --color-night-2: #080a18;
+  --color-surface: #0c0f22;
+  --color-line: rgba(140, 150, 230, 0.14);
+  --color-line-strong: rgba(160, 170, 255, 0.28);
+
+  /* text */
+  --color-ink: #eef0ff;
+  --color-ink-soft: #c3c7ee;
+  --color-muted: #888fc4;
+
+  /* neon brand stops */
+  --color-indigo: #6366f1;
+  --color-violet: #8b5cf6;
+  --color-fuchsia: #e23bd6;
+  --color-cyan: #22d3ee;
+  --color-sky: #38bdf8;
+
+  --color-accent: #8b5cf6;
+  --color-accent-soft: rgba(139, 92, 246, 0.14);
+
+  --font-display: var(--font-rajdhani), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-rajdhani), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --shadow-glow: 0 24px 70px -22px rgba(139, 92, 246, 0.6);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 30px 60px -30px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+:root {
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  background-color: var(--color-night);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.005em;
+}
+
+/* hide scrollbars on the horizontal nav (keep it scrollable) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background-color: var(--color-violet);
+  color: #fff;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 11px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-night);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--color-violet), var(--color-indigo));
+  border-radius: 99px;
+  border: 3px solid var(--color-night);
+}
+
+/* ============================================================
+   Brand utilities
+   ============================================================ */
+.text-gradient {
+  background-image: linear-gradient(
+    110deg,
+    var(--color-sky) 0%,
+    var(--color-violet) 48%,
+    var(--color-fuchsia) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-cyan {
+  background-image: linear-gradient(
+    110deg,
+    var(--color-cyan) 0%,
+    var(--color-sky) 50%,
+    var(--color-violet) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-brand {
+  background-image: linear-gradient(
+    115deg,
+    var(--color-indigo) 0%,
+    var(--color-violet) 50%,
+    var(--color-fuchsia) 100%
+  );
+}
+
+/* Gradient button with animated sheen + glow */
+.btn-grad {
+  position: relative;
+  background-image: linear-gradient(
+    115deg,
+    var(--color-sky) 0%,
+    var(--color-violet) 50%,
+    var(--color-fuchsia) 100%
+  );
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+  color: #fff;
+  box-shadow: 0 10px 36px -12px rgba(139, 92, 246, 0.8);
+  transition: background-position 0.6s ease, transform 0.2s ease,
+    box-shadow 0.3s ease;
+}
+.btn-grad:hover {
+  background-position: 100% 50%;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 50px -10px rgba(226, 59, 214, 0.7);
+}
+
+/* Ghost / glass button */
+.btn-ghost {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-line-strong);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--color-ink);
+  transition: border-color 0.3s ease, color 0.3s ease, transform 0.2s ease,
+    background-color 0.3s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--color-violet);
+  color: #fff;
+  transform: translateY(-2px);
+  background-color: rgba(139, 92, 246, 0.12);
+}
+
+/* Glass surfaces */
+.glass {
+  background-color: rgba(15, 18, 40, 0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid var(--color-line);
+}
+.glass-nav {
+  background-color: rgba(7, 9, 22, 0.6);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+/* Card */
+.card {
+  position: relative;
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-line);
+  background-color: rgba(13, 16, 35, 0.6);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.card:hover {
+  border-color: var(--color-line-strong);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Gradient ring/border for emphasized cards */
+.ring-grad {
+  position: relative;
+}
+.ring-grad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    130deg,
+    var(--color-cyan),
+    var(--color-violet),
+    var(--color-fuchsia)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.ring-grad:hover::before {
+  opacity: 1;
+}
+
+/* Neon chip */
+.chip {
+  border: 1px solid var(--color-line);
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--color-ink-soft);
+  transition: border-color 0.3s ease, color 0.3s ease, background-color 0.3s ease,
+    transform 0.2s ease;
+}
+.chip:hover {
+  border-color: var(--color-violet);
+  color: #fff;
+  background-color: rgba(139, 92, 246, 0.14);
+  transform: translateY(-2px);
+}
+
+/* Eyebrow label */
+.eyebrow {
+  color: var(--color-cyan);
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   3D tilt card (driven by TiltCard.tsx CSS vars)
+   ============================================================ */
+.tilt {
+  transform-style: preserve-3d;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
+    translateZ(0);
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+.tilt-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(139, 92, 246, 0.22),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.tilt:hover .tilt-glow {
+  opacity: 1;
+}
+
+/* ============================================================
+   Background glow layer (CSS fallback behind the WebGL canvas)
+   ============================================================ */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% -5%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(40% 40% at 85% 15%, rgba(34, 211, 238, 0.12), transparent 60%),
+    radial-gradient(45% 45% at 12% 80%, rgba(226, 59, 214, 0.12), transparent 60%),
+    var(--color-night);
+}
+.aurora-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+      to right,
+      rgba(140, 150, 230, 0.05) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(140, 150, 230, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    #000 25%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 25%, transparent 75%);
+}
+
+/* Section divider glow line */
+.divider-glow {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-line-strong),
+    transparent
+  );
+}
+
+/* ============================================================
+   Scroll-reveal
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Floating marquee for skills */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Slow spin / pulse for accents */
+@keyframes pulse-ring {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+.pulse-ring {
+  animation: pulse-ring 3.5s ease-in-out infinite;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.float-y {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .marquee-track,
+  .pulse-ring,
+  .float-y {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
