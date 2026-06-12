@@ -408,3 +408,97 @@ h4 {
     scroll-behavior: auto;
   }
 }
+
+/* ============================================================
+   THEMES — tokens re-declared per [data-theme]; utilities read
+   these vars, so every component adapts automatically.
+   ============================================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-night: #05060f;
+  --color-night-2: #080a18;
+  --color-surface: #0c0f22;
+  --color-line: rgba(140, 150, 230, 0.14);
+  --color-line-strong: rgba(160, 170, 255, 0.28);
+  --color-ink: #eef0ff;
+  --color-ink-soft: #c3c7ee;
+  --color-muted: #888fc4;
+  --color-indigo: #6366f1;
+  --color-violet: #8b5cf6;
+  --color-fuchsia: #e23bd6;
+  --color-cyan: #22d3ee;
+  --color-sky: #38bdf8;
+  --color-accent: #8b5cf6;
+  --color-accent-soft: rgba(139, 92, 246, 0.14);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-night: #eef1f9;
+  --color-night-2: #ffffff;
+  --color-surface: #ffffff;
+  --color-line: rgba(23, 27, 68, 0.12);
+  --color-line-strong: rgba(23, 27, 68, 0.24);
+  --color-ink: #161830;
+  --color-ink-soft: #3a3f60;
+  --color-muted: #5c6385;
+  --color-indigo: #4f46e5;
+  --color-violet: #7c3aed;
+  --color-fuchsia: #c026d3;
+  --color-cyan: #0e7490;
+  --color-sky: #0284c7;
+  --color-accent: #7c3aed;
+  --color-accent-soft: rgba(124, 58, 237, 0.1);
+  --shadow-glow: 0 24px 60px -24px rgba(124, 58, 237, 0.4);
+  --shadow-card: 0 1px 2px rgba(20, 20, 50, 0.05),
+    0 22px 45px -28px rgba(80, 70, 160, 0.28);
+}
+
+/* Light-mode surface tweaks (dark surfaces are the base rules above) */
+[data-theme="light"] body {
+  background-image: none;
+}
+[data-theme="light"] .glass {
+  background-color: rgba(255, 255, 255, 0.72);
+}
+[data-theme="light"] .glass-nav {
+  background-color: rgba(247, 249, 253, 0.8);
+}
+[data-theme="light"] .card {
+  background-color: rgba(255, 255, 255, 0.82);
+}
+[data-theme="light"] .btn-ghost {
+  background-color: rgba(23, 27, 68, 0.035);
+}
+[data-theme="light"] .chip {
+  background-color: rgba(23, 27, 68, 0.04);
+}
+[data-theme="light"] .aurora {
+  background: radial-gradient(
+      60% 50% at 50% -5%,
+      rgba(99, 102, 241, 0.14),
+      transparent 60%
+    ),
+    radial-gradient(40% 40% at 85% 15%, rgba(14, 116, 144, 0.1), transparent 60%),
+    radial-gradient(45% 45% at 12% 80%, rgba(192, 38, 211, 0.08), transparent 60%),
+    var(--color-night);
+}
+[data-theme="light"] .aurora-grid {
+  background-image: linear-gradient(
+      to right,
+      rgba(23, 27, 68, 0.05) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(23, 27, 68, 0.05) 1px, transparent 1px);
+}
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #eef1f9;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  border-color: #eef1f9;
+}
+
+/* Particle WebGL field is dark-theme only */
+[data-theme="light"] .three-bg {
+  display: none;
+}

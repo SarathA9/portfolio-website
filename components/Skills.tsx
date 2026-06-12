@@ -51,7 +51,7 @@ export default function Skills() {
           {loop.map((item, i) => (
             <span
               key={item + i}
-              className="whitespace-nowrap rounded-full border border-line bg-white/[0.03] px-4 py-1.5 text-sm text-muted"
+              className="chip whitespace-nowrap rounded-full px-4 py-1.5 text-sm"
             >
               {item}
             </span>

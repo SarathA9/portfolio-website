@@ -201,10 +201,12 @@ export default function ThreeBackground() {
 
       renderer.render(scene, camera);
     };
-    animate();
+    const isLight = () =>
+      document.documentElement.getAttribute("data-theme") === "light";
 
-    const onVis = () => {
-      if (document.hidden) {
+    // particle field is dark-theme only; pause it on light / hidden tabs
+    const syncRunning = () => {
+      if (document.hidden || isLight()) {
         running = false;
         cancelAnimationFrame(raf);
       } else if (!running) {
@@ -212,7 +214,12 @@ export default function ThreeBackground() {
         animate();
       }
     };
-    document.addEventListener("visibilitychange", onVis);
+
+    if (!isLight()) animate();
+    else running = false;
+
+    document.addEventListener("visibilitychange", syncRunning);
+    window.addEventListener("themechange", syncRunning);
 
     return () => {
       running = false;
@@ -220,7 +227,8 @@ export default function ThreeBackground() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("visibilitychange", syncRunning);
+      window.removeEventListener("themechange", syncRunning);
       pGeo.dispose();
       pMat.dispose();
       lGeo.dispose();
@@ -234,7 +242,7 @@ export default function ThreeBackground() {
   return (
     <div
       ref={mountRef}
-      className="pointer-events-none fixed inset-0 -z-10"
+      className="three-bg pointer-events-none fixed inset-0 -z-10"
       aria-hidden
     />
   );

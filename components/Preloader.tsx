@@ -135,7 +135,8 @@ export default function Preloader() {
         setClosing(true);
         setTimeout(() => setHidden(true), 500);
       }}
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-night px-5 transition-opacity duration-700 ${
+      data-theme="dark"
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#05060f] px-5 transition-opacity duration-700 ${
         closing ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       role="status"

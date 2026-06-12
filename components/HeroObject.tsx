@@ -43,6 +43,17 @@ export default function HeroObject() {
     const group = new THREE.Group();
     scene.add(group);
 
+    // theme-aware palette: neon-additive on dark, deeper-ink-normal on light
+    const light =
+      document.documentElement.getAttribute("data-theme") === "light";
+    const blend = light ? THREE.NormalBlending : THREE.AdditiveBlending;
+    const COL = light
+      ? { shell: 0x4f46e5, mid: 0x7c3aed, core: 0x0e7490, dots: 0x4f46e5 }
+      : { shell: 0x22d3ee, mid: 0x8b5cf6, core: 0x67e8f9, dots: 0x22d3ee };
+    const OPA = light
+      ? { shell: 0.75, mid: 0.8, core: 0.9, dots: 0.9 }
+      : { shell: 0.5, mid: 0.6, core: 0.75, dots: 0.85 };
+
     const wire = (radius: number, detail: number, color: number, opacity: number) => {
       const geo = new THREE.IcosahedronGeometry(radius, detail);
       const mat = new THREE.MeshBasicMaterial({
@@ -50,7 +61,7 @@ export default function HeroObject() {
         wireframe: true,
         transparent: true,
         opacity,
-        blending: THREE.AdditiveBlending,
+        blending: blend,
         depthWrite: false,
       });
       const mesh = new THREE.Mesh(geo, mat);
@@ -59,18 +70,18 @@ export default function HeroObject() {
     };
 
     // nested neon wireframe shells (cyan outer → violet mid → bright-cyan core)
-    const shell = wire(2.05, 1, 0x22d3ee, 0.5);
-    const mid = wire(1.4, 1, 0x8b5cf6, 0.6);
-    const core = wire(0.72, 0, 0x67e8f9, 0.75);
+    const shell = wire(2.05, 1, COL.shell, OPA.shell);
+    const mid = wire(1.4, 1, COL.mid, OPA.mid);
+    const core = wire(0.72, 0, COL.core, OPA.core);
 
     // outer point halo
     const dotGeo = new THREE.IcosahedronGeometry(2.55, 3);
     const dotMat = new THREE.PointsMaterial({
-      color: 0x22d3ee,
+      color: COL.dots,
       size: 0.05,
       transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending,
+      opacity: OPA.dots,
+      blending: blend,
       depthWrite: false,
     });
     const dots = new THREE.Points(dotGeo, dotMat);

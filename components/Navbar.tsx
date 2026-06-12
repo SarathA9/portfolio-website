@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { navLinks, profile } from "@/lib/data";
 import { ArrowUpRight, Close, GitHub, LinkedIn, Mail, Menu } from "./Icons";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -58,7 +59,7 @@ export default function Navbar() {
             : "border-b border-transparent"
         }`}
       >
-        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-end px-4 sm:px-8 md:justify-center">
+        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-center px-4 sm:px-8">
           {/* Desktop links */}
           <ul className="hidden items-center gap-8 md:flex">
             {navLinks.map((link) => {
@@ -83,17 +84,21 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* Mobile menu button */}
+        </nav>
+
+        {/* Right cluster: theme toggle (all sizes) + mobile menu button */}
+        <div className="absolute right-4 top-0 flex h-16 items-center gap-2 sm:right-8">
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Open menu"
             aria-expanded={open}
-            className="glass grid h-11 w-11 place-items-center rounded-xl text-ink transition-colors hover:text-cyan md:hidden"
+            className="glass grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:text-cyan md:hidden"
           >
             <Menu className="h-6 w-6" />
           </button>
-        </nav>
+        </div>
       </header>
 
       {/* Mobile full-screen overlay */}
@@ -118,14 +123,17 @@ export default function Navbar() {
         <div className="relative flex h-full flex-col">
           <div className="flex h-16 items-center justify-between px-5">
             <span className="eyebrow text-xs">Navigation</span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close menu"
-              className="glass grid h-11 w-11 place-items-center rounded-xl text-ink transition-colors hover:text-cyan"
-            >
-              <Close className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+                className="glass grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:text-cyan"
+              >
+                <Close className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           <nav className="flex flex-1 flex-col justify-center px-6">
