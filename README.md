@@ -20,24 +20,11 @@ npm run build
 npm run start
 ```
 
-## Deploy to Vercel
-
-This project deploys to [Vercel](https://vercel.com) with zero configuration:
-
-1. Push this folder to a GitHub repository.
-2. In Vercel, **Add New → Project**, import the repo, and click **Deploy**.
-   Vercel auto-detects Next.js — no settings needed.
 
 ## Editing content
 
 All text lives in **`lib/data.ts`** — profile, experience, research, projects,
 skills, education and contact details. Edit that one file to update the site.
-
-## Your profile photo
-
-Replace **`public/profile.jpg`** with your own photo (square, ~640×640px works
-well). The current file is a placeholder monogram. If the image is ever missing,
-the site automatically falls back to an "SA" monogram.
 
 ## Documents
 
