@@ -38,7 +38,7 @@ export const about = {
 };
 
 export const stats = [
-  { value: "2", label: "Research papers" },
+  { value: "3", label: "Research papers" },
   { value: "7+", label: "Shipped projects" },
   { value: "3", label: "Industry roles" },
   { value: "5+", label: "Years coding" },
@@ -102,6 +102,21 @@ export type Research = {
 export const research: Research[] = [
   {
     title:
+      "Rank-Faithfulness Consistency: A Query-Time Defense Against Dual-Surface Backdoors in RAG",
+    venue: "OTH Amberg-Weiden · Research Report",
+    date: "Jun 2026",
+    summary:
+      "A dual-surface backdoor threat against Retrieval-Augmented Generation — an LLM backdoored during QLoRA fine-tuning combined with a poisoned retrieval corpus. I build the full LLaMA-3-8B + FAISS pipeline and propose Rank-Faithfulness Consistency (RFC): a query-time defense that flags a retrieved document when its query relevance exceeds its similarity to the centroid of the co-retrieved context.",
+    highlights: [
+      "Near-perfect detection of realistic sparse corpus poisoning — AUC 0.99–1.00 at one poison document in the top-5",
+      "The matching defense restores end-to-end accuracy (conflict attack 0.756→0.858; ASR 0.21→0.014)",
+      "RFC and ingestion-time filtering are structurally complementary — proven against an adaptive, RFC-aware attacker",
+    ],
+    tags: ["Python", "PyTorch", "LLaMA-3", "QLoRA", "FAISS"],
+    links: [{ label: "GitHub", href: "https://github.com/SarathA9" }],
+  },
+  {
+    title:
       "ECG Signal Processing for Anaesthesia Monitoring: A Rule-Based Classification Approach",
     venue: "OTH Amberg-Weiden · Technical Report",
     date: "Jan 2026",
@@ -145,6 +160,15 @@ export type Project = {
 };
 
 export const projects: Project[] = [
+  {
+    title: "RAG Backdoor Defense — RFC",
+    blurb:
+      "A dual-surface backdoor study for Retrieval-Augmented Generation: a QLoRA-backdoored LLaMA-3-8B paired with a poisoned retrieval corpus. I designed Rank-Faithfulness Consistency (RFC), a query-time defense that detects poisoned documents (AUC 0.99–1.00), benchmarked against ingestion-time filtering and an adaptive attacker.",
+    tags: ["LLaMA-3", "QLoRA", "RAG", "FAISS", "PyTorch", "LLM Security"],
+    href: "https://github.com/SarathA9",
+    linkLabel: "GitHub",
+    featured: true,
+  },
   {
     title: "NeuroTrack — AI Neurofeedback Platform",
     blurb:
