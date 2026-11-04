@@ -12,11 +12,11 @@ function SectionHead({ id, title, note }: { id: string; title: string; note?: st
 
 const ext = (href: string) => (href.startsWith("http") ? { target: "_blank", rel: "noopener" } : {});
 
-// Headline results of the RAG backdoor study, taken from its report.
+// Headline results of the RAG backdoor study, from the research report.
 const rfcMetrics = [
-  { value: "0.99–1.00", label: "AUC detecting one poisoned document in the top-5" },
-  { value: "0.21 → 0.014", label: "Attack success rate, before and after the defense" },
-  { value: "0.756 → 0.858", label: "End-to-end accuracy under the conflict attack" },
+  { value: "0.99–1.00", label: "AUC detecting a single poisoned document" },
+  { value: "21% → 1.4%", label: "Conflict-attack success rate, over 500 questions" },
+  { value: "2,067", label: "Passages in the poisoned FAISS retrieval corpus" },
 ];
 
 function Tags({ items }: { items: string[] }) {
@@ -36,13 +36,13 @@ export function Research() {
       <SectionHead
         id="research"
         title="Research"
-        note="Reports from my master’s at OTH Amberg-Weiden, each with working code and measured results."
+        note="Study and research projects from my master’s at OTH Amberg-Weiden, each with working code and measured results."
       />
 
-      <article id={`r-${slug(lead.title)}`} className="card spot lead">
+      <article id={`r-${slug(lead.title)}`} className="card spot lead depth">
         <div className="lead-top">
           <p className="meta">
-            {lead.date}, {lead.venue.split("·")[1]?.trim() ?? lead.venue}
+            {lead.date}, {lead.venue}
           </p>
           <h3>{lead.title}</h3>
           <p className="lead-summary">{lead.summary}</p>
@@ -67,13 +67,14 @@ export function Research() {
         </div>
       </article>
 
-      <div className="grid-2">
+      <div className="grid-research">
         {rest.map((r) => (
-          <article key={r.title} id={`r-${slug(r.title)}`} className="card spot">
+          <article key={r.title} id={`r-${slug(r.title)}`} className="card spot depth study">
             <p className="meta">
-              {r.date}, {r.venue.split("·")[1]?.trim() ?? r.venue}
+              {r.date}, {r.venue}
             </p>
             <h3>{r.title}</h3>
+            <p className="study-result">{r.result}</p>
             <p className="card-text">{r.summary}</p>
             <ul className="results">
               {r.highlights.map((h) => (
@@ -82,13 +83,15 @@ export function Research() {
             </ul>
             <div className="card-foot">
               <Tags items={r.tags.slice(0, 4)} />
-              <div className="links">
-                {r.links.map((l) => (
-                  <a key={l.href} href={l.href} {...ext(l.href)}>
-                    {l.label.replace(" (PDF)", "")}
-                  </a>
-                ))}
-              </div>
+              {r.links.length > 0 && (
+                <div className="links">
+                  {r.links.map((l) => (
+                    <a key={l.href} href={l.href} {...ext(l.href)}>
+                      {l.label}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </article>
         ))}
@@ -98,45 +101,50 @@ export function Research() {
 }
 
 export function Projects() {
-  // The RAG defense already leads the Research section, so it is not repeated here.
-  const featured = projects.filter((p) => p.featured && !p.title.includes("RFC"));
-  const rest = projects.filter((p) => !p.featured);
+  const n = projects.length;
   return (
-    <section id="projects" className="sec wrap" aria-labelledby="projects-title">
-      <SectionHead
-        id="projects"
-        title="Projects"
-        note="Machine learning, computer vision and full-stack products I have built."
-      />
-      <div className="grid-3">
-        {featured.map((p) => (
-          <article key={p.title} id={`p-${slug(p.title)}`} className="card spot project">
-            <h3>
-              <a href={p.href} {...ext(p.href)}>
-                {p.title.split(" — ")[0]}
-              </a>
-            </h3>
-            {p.title.includes(" — ") && <p className="project-kind">{p.title.split(" — ")[1]}</p>}
-            <p className="card-text">{p.blurb}</p>
-            <div className="card-foot">
-              <Tags items={p.tags.slice(0, 4)} />
-            </div>
-            <span className="project-link">{p.linkLabel}</span>
-          </article>
-        ))}
+    <section id="projects" className="sec" aria-labelledby="projects-title">
+      <div className="wrap">
+        <SectionHead
+          id="projects"
+          title="Projects"
+          note="Products I have built and shipped."
+        />
       </div>
-
-      <ul className="more">
-        {rest.map((p) => (
-          <li key={p.title} id={`p-${slug(p.title)}`}>
-            <a href={p.href} {...ext(p.href)}>
-              <span className="more-name">{p.title}</span>
-              <span className="more-blurb">{p.blurb}</span>
-              <span className="more-tags">{p.tags.slice(0, 3).join(", ")}</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      <div className="orbit" data-count={n} style={{ ["--n" as string]: n }}>
+        <div className="orbit-stage">
+          <div className="orbit-ring">
+            {projects.map((p, i) => (
+              <article
+                key={p.title}
+                id={`p-${slug(p.title)}`}
+                className="orbit-card card spot"
+                data-index={i}
+                style={{ ["--i" as string]: i }}
+              >
+                <p className="project-kind">{p.kind}</p>
+                <h3>
+                  <a href={p.href} {...ext(p.href)}>
+                    {p.title}
+                  </a>
+                </h3>
+                <p className="card-text">{p.blurb}</p>
+                <div className="card-foot">
+                  <Tags items={p.tags.slice(0, 4)} />
+                </div>
+                <span className="project-link">{p.linkLabel}</span>
+              </article>
+            ))}
+          </div>
+          <ol className="orbit-dots" aria-hidden>
+            {projects.map((p, i) => (
+              <li key={p.title} data-i={i}>
+                {p.title}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
     </section>
   );
 }
@@ -147,7 +155,7 @@ export function Experience() {
       <SectionHead id="experience" title="Experience" note="Most recent first." />
       <ol className="timeline">
         {experience.map((e) => (
-          <li key={e.company} id={`e-${slug(e.company)}`}>
+          <li key={e.company} id={`e-${slug(e.company)}`} className="depth">
             <div className="tl-when">
               <span>{e.period}</span>
               <span>{e.location}</span>
@@ -171,7 +179,7 @@ export function Experience() {
 export function About() {
   return (
     <section id="about" className="sec wrap" aria-labelledby="about-title">
-      <div className="about">
+      <div className="about depth">
         <figure className="about-photo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -193,14 +201,14 @@ export function About() {
               <li key={f}>{f}</li>
             ))}
           </ul>
-          <dl className="langs">
+          <dl className="langs" aria-label="Languages">
             <div>
               <dt>English</dt>
-              <dd>C1</dd>
+              <dd>C1, business fluent</dd>
             </div>
             <div>
               <dt>German</dt>
-              <dd>A2</dd>
+              <dd>A2, basic</dd>
             </div>
             <div>
               <dt>Malayalam</dt>
@@ -253,7 +261,7 @@ export function SkillsEducation() {
 export function Contact() {
   return (
     <section id="contact" className="sec wrap" aria-labelledby="contact-title">
-      <div className="contact card">
+      <div className="contact card depth">
         <h2 id="contact-title">Let’s work together</h2>
         <p>
           I’m looking for a working-student or internship role in AI or software. I’m based in

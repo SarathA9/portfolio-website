@@ -47,7 +47,8 @@ app/
 components/
   Navbar.tsx
   Hero.tsx
-  NeuralField.tsx   # the 3D neural-network hero background (Three.js, loaded lazily)
+  SceneBackground.tsx # fixed 3D network that morphs shape as you scroll (Three.js, loaded lazily)
+  ScrollFX.tsx      # scroll-driven 3D: hero sink-back, cards tilting in, projects carousel
   Spotlight.tsx     # soft light under the pointer on cards
   AskPortfolio.tsx  # the search box (client component)
   Sections.tsx      # Research, Projects, Experience, About, Skills & Education, Contact

@@ -142,17 +142,29 @@ mark {
   gap: 24px;
   height: 64px;
 }
-.nav-mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: -0.02em;
-  background: linear-gradient(140deg, rgb(142 166 255 / 0.28), rgb(182 156 255 / 0.12));
-  border: 1px solid var(--line-2);
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.mark-svg {
+  display: block;
+  flex: none;
+}
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.brand-name span {
+  color: var(--muted);
+  font-weight: 500;
+}
+@media (max-width: 420px) {
+  .brand-name span {
+    display: none;
+  }
 }
 .nav-links {
   display: flex;
@@ -200,26 +212,32 @@ mark {
 .hero {
   position: relative;
   overflow: hidden;
+  perspective: 1200px;
   min-height: min(920px, calc(100svh - 64px));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
 }
-.neural {
-  position: absolute;
+.scene {
+  position: fixed;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
   opacity: 0;
   transition: opacity 1.6s ease-out;
 }
-.neural[data-ready="true"] {
+.scene[data-ready="true"] {
   opacity: 1;
 }
-.neural canvas {
+.scene canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+main {
+  position: relative;
+  z-index: 1;
 }
 .hero-glow {
   position: absolute;
@@ -368,12 +386,6 @@ mark {
 @media (max-width: 960px) {
   .hero::after {
     background: linear-gradient(180deg, rgb(8 9 12 / 0.55) 0%, rgb(8 9 12 / 0.92) 55%, var(--bg) 100%);
-  }
-  .neural {
-    opacity: 0;
-  }
-  .neural[data-ready="true"] {
-    opacity: 0.7;
   }
   .facts {
     grid-template-columns: 1fr 1fr;
@@ -1143,5 +1155,216 @@ mark {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Scroll-driven 3D (only when JS adds .fx and motion is allowed)
+------------------------------------------------------------------- */
+.fx .hero-inner,
+.fx .hero .facts {
+  transform-origin: 30% 50%;
+  transform: translate3d(0, calc(var(--hp, 0) * -70px), calc(var(--hp, 0) * -260px))
+    rotateX(calc(var(--hp, 0) * 8deg));
+  opacity: calc(1 - var(--hp, 0) * 1.25);
+  filter: blur(calc(var(--hp, 0) * 5px));
+  will-change: transform;
+}
+.fx .depth {
+  transform-origin: 50% 100%;
+  transform: perspective(1400px)
+    translate3d(0, calc((1 - var(--p, 1)) * 90px), calc((1 - var(--p, 1)) * -180px))
+    rotateX(calc((1 - var(--p, 1)) * 22deg));
+  opacity: calc(0.1 + var(--p, 1) * 0.9);
+}
+.fx .card.depth {
+  transition: border-color 0.25s;
+}
+
+/* Research grid */
+.grid-research {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.study {
+  display: flex;
+  flex-direction: column;
+}
+.study .card-foot {
+  margin-top: auto;
+  padding-top: 22px;
+}
+.study-result {
+  margin-top: 14px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  background: linear-gradient(90deg, #fff, var(--accent) 160%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@media (max-width: 1100px) {
+  .grid-research {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 720px) {
+  .grid-research {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Projects: 3D carousel that turns with scroll */
+.orbit {
+  --R: 400px;
+  position: relative;
+  height: calc(var(--n) * 55vh + 100vh);
+}
+.orbit-stage {
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  display: grid;
+  place-items: center;
+  perspective: 1500px;
+  perspective-origin: 50% 45%;
+  overflow: hidden;
+}
+.orbit-ring {
+  position: relative;
+  width: min(440px, 84vw);
+  height: 380px;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(-1 * var(--R))) rotateY(var(--rot, 0deg));
+}
+.orbit-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #13151c, #0d0f14);
+  border-color: var(--line-2);
+  backface-visibility: hidden;
+  transform: rotateY(calc(var(--i) * 360deg / var(--n))) translateZ(var(--R));
+  transition: opacity 0.4s, filter 0.4s, border-color 0.25s;
+  opacity: 0.6;
+  filter: saturate(0.7) brightness(0.8);
+}
+.orbit-card h3 {
+  margin-top: 6px;
+  font-size: 26px;
+}
+.orbit-card h3 a::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * clamp(22px, 2.6vw, 30px));
+}
+.orbit-card .card-foot {
+  margin-top: auto;
+}
+.project-kind {
+  font-size: 14px;
+  color: var(--accent);
+}
+.project-link {
+  margin-top: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.orbit-card:hover .project-link {
+  color: var(--text);
+}
+.orbit-dots {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: max-content;
+  max-width: 92vw;
+}
+.orbit-dots li {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+.orbit[data-active="0"] .orbit-card[data-index="0"] { opacity: 1; filter: none; }
+.orbit[data-active="0"] .orbit-dots li[data-i="0"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="1"] .orbit-card[data-index="1"] { opacity: 1; filter: none; }
+.orbit[data-active="1"] .orbit-dots li[data-i="1"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="2"] .orbit-card[data-index="2"] { opacity: 1; filter: none; }
+.orbit[data-active="2"] .orbit-dots li[data-i="2"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="3"] .orbit-card[data-index="3"] { opacity: 1; filter: none; }
+.orbit[data-active="3"] .orbit-dots li[data-i="3"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="4"] .orbit-card[data-index="4"] { opacity: 1; filter: none; }
+.orbit[data-active="4"] .orbit-dots li[data-i="4"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="5"] .orbit-card[data-index="5"] { opacity: 1; filter: none; }
+.orbit[data-active="5"] .orbit-dots li[data-i="5"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="6"] .orbit-card[data-index="6"] { opacity: 1; filter: none; }
+.orbit[data-active="6"] .orbit-dots li[data-i="6"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+.orbit[data-active="7"] .orbit-card[data-index="7"] { opacity: 1; filter: none; }
+.orbit[data-active="7"] .orbit-dots li[data-i="7"] { color: var(--text); border-color: rgb(142 166 255 / 0.5); background: rgb(142 166 255 / 0.1); }
+
+/* Without the scroll effects (no JS, reduced motion, small screens) the carousel is a plain grid */
+html:not(.fx) .orbit,
+html:not(.fx) .orbit-stage {
+  height: auto;
+  position: static;
+  perspective: none;
+}
+html:not(.fx) .orbit-ring {
+  width: auto;
+  height: auto;
+  transform: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+}
+html:not(.fx) .orbit-card {
+  position: relative;
+  transform: none;
+  opacity: 1;
+  filter: none;
+}
+html:not(.fx) .orbit-dots {
+  display: none;
+}
+@media (max-width: 760px) {
+  .orbit,
+  .orbit-stage {
+    height: auto;
+    position: static;
+    perspective: none;
+  }
+  .orbit-ring {
+    width: auto;
+    height: auto;
+    transform: none !important;
+    display: grid;
+    gap: 16px;
+    padding-inline: var(--gutter);
+  }
+  .orbit-card {
+    position: relative;
+    transform: none;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  .orbit-dots {
+    display: none;
   }
 }

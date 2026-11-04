@@ -61,9 +61,10 @@ const synonyms: Record<string, string[]> = {
   frontend: ["react", "tailwind", "html", "css", "interfaces"],
   backend: ["node", "express", "flask", "api", "mysql"],
   fullstack: ["react", "node", "mysql", "full"],
-  robot: ["robots", "webots", "mqtt", "pathfinding", "delivery"],
-  robotics: ["robots", "webots", "mqtt", "pathfinding", "delivery"],
-  signal: ["ecg", "eeg", "hrv", "filter", "signals"],
+  robot: ["robots", "rosbot", "webots", "mqtt", "lidar", "navigation", "delivery"],
+  robotics: ["robots", "rosbot", "webots", "mqtt", "lidar", "navigation", "delivery"],
+  navigation: ["maze", "particle", "localisation", "lidar", "a*"],
+  signal: ["ecg", "eeg", "hrv", "filter", "signals", "sensor", "imu"],
   health: ["ecg", "eeg", "clinic", "telemedicine", "anaesthesia", "patient"],
   database: ["mysql", "postgresql", "mongodb", "firebase", "sql"],
   sql: ["mysql", "postgresql"],
@@ -110,7 +111,9 @@ export function retrieve(query: string, k = 5): Hit[] {
       sum += best;
     }
 
-    return { doc, score: sum / q.length, terms: [...matched] };
+    // a skills list is context, not evidence of work, so it ranks a little lower
+    const weight = doc.kind === "Skills" ? 0.75 : 1;
+    return { doc, score: (sum / q.length) * weight, terms: [...matched] };
   });
 
   return hits

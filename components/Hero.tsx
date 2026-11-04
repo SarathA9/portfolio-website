@@ -1,11 +1,10 @@
 import { profile } from "@/lib/data";
 import AskPortfolio from "./AskPortfolio";
-import NeuralField from "./NeuralField";
 
 const facts = [
   { label: "Studying", value: "M.Sc. Artificial Intelligence, OTH Amberg-Weiden" },
-  { label: "Working", value: "Freelance full-stack developer since 2024" },
-  { label: "Research", value: "Backdoor defenses for RAG-based LLMs" },
+  { label: "Working", value: "Freelance full-stack developer" },
+  { label: "Focus", value: "LLM security, robotics, signal processing" },
   { label: "Based in", value: "Nuremberg, Germany" },
 ];
 
@@ -13,7 +12,6 @@ export default function Hero() {
   return (
     <>
       <header className="hero" id="top">
-        <NeuralField />
         <div className="hero-glow" aria-hidden />
         <div className="wrap hero-inner">
           <p className="pill">
@@ -25,9 +23,9 @@ export default function Hero() {
             AI engineer focused on LLM security, and full-stack developer.
           </p>
           <p className="hero-sub">
-            I research how retrieval-augmented language models can be backdoored, and how to
-            catch it at query time. Alongside my master’s, I build production web apps with React,
-            Node.js and SQL.
+            My master’s projects range from defending RAG systems against backdoors to autonomous
+            robot navigation and indoor localisation. Alongside my studies, I build web apps for
+            clients with React, Node.js and SQL.
           </p>
           <div className="hero-actions">
             <a className="btn btn-primary" href={`mailto:${profile.email}`}>

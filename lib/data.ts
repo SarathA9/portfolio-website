@@ -26,23 +26,16 @@ export const profile = {
 
 export const about = {
   intro: [
-    "I'm a Master of Science student in Artificial Intelligence at OTH Amberg-Weiden (Ostbayerische Technische Hochschule), in the Industrie 4.0 Informatik programme. My background is in computer applications, and I work across the full stack while focusing on applied AI, robotics, and signal processing.",
-    "Alongside my studies I work as a freelance software developer, building scalable web applications with React, Node.js and MySQL. I enjoy taking a problem end-to-end — from data and models to a clean, responsive interface that people actually want to use.",
+    "I'm a master's student in Artificial Intelligence at OTH Amberg-Weiden, in the Industrie 4.0 Informatik programme. My focus is machine learning, LLM security, robotics and signal processing, and I like taking a problem all the way from data and models to a finished web interface.",
+    "My study projects range from defending RAG systems against backdoors to autonomous robot navigation and indoor localisation. Alongside my studies I work as a freelance full-stack developer, building web applications for clients with React, Node.js and MySQL.",
   ],
   focus: [
-    "Applied machine learning & computer vision",
-    "Full-stack web (React · Node.js · Flask)",
-    "Robotics & real-time systems",
-    "Biomedical signal processing",
+    "LLM security and RAG",
+    "Machine learning and computer vision",
+    "Robotics and sensor fusion",
+    "Full-stack web development",
   ],
 };
-
-export const stats = [
-  { value: "3", label: "Research papers" },
-  { value: "7+", label: "Shipped projects" },
-  { value: "3", label: "Industry roles" },
-  { value: "5+", label: "Years coding" },
-];
 
 export type Experience = {
   role: string;
@@ -56,23 +49,23 @@ export const experience: Experience[] = [
   {
     role: "Freelance Software Developer",
     company: "Self-employed",
-    location: "Nuremberg, Germany",
-    period: "Aug 2024 – Present",
+    location: "Remote",
+    period: "Present",
     points: [
-      "Deliver full-stack web applications for clients using React, Node.js and MySQL.",
-      "Build scalable, secure architectures with a focus on performance and clean UX.",
-      "Provide client-focused, agile development support from requirements to deployment.",
+      "Build full-stack web applications for clients with React, Node.js and MySQL.",
+      "Design scalable, secure architectures with a focus on performance and user experience.",
+      "Run projects in an agile way, from requirements analysis to deployment.",
     ],
   },
   {
     role: "Software Engineering Intern",
     company: "Talisma Corporation Pvt. Ltd",
     location: "Bangalore, India",
-    period: "8 months",
+    period: "07/2024 – 02/2025",
     points: [
-      "Developed web applications with modern technologies alongside the engineering team.",
-      "Implemented secure authentication and authorization mechanisms.",
-      "Supported database management, integration, and real-time data & analytics features.",
+      "Developed web applications as part of the engineering team.",
+      "Implemented secure authentication and authorization.",
+      "Supported database management, system integration, and real-time data and analytics features.",
       "Built responsive, user-friendly interfaces.",
     ],
   },
@@ -80,11 +73,11 @@ export const experience: Experience[] = [
     role: "Software Development Intern",
     company: "Codelab Systems",
     location: "Mangalore, India",
-    period: "May 2024",
+    period: "01/2024 – 05/2024",
     points: [
-      "Built dynamic React.js applications and strengthened API-integration skills.",
-      "Contributed to responsive eCommerce-focused web designs.",
-      "Practised troubleshooting and technical issue resolution.",
+      "Built dynamic React.js applications and extended API integrations.",
+      "Contributed to responsive e-commerce web designs.",
+      "Analysed bugs and solved technical issues.",
     ],
   },
 ];
@@ -93,6 +86,8 @@ export type Research = {
   title: string;
   venue: string;
   date: string;
+  /** The single headline result, shown large on the card */
+  result: string;
   summary: string;
   highlights: string[];
   tags: string[];
@@ -101,132 +96,149 @@ export type Research = {
 
 export const research: Research[] = [
   {
-    title:
-      "Rank-Faithfulness Consistency: A Query-Time Defense Against Dual-Surface Backdoors in RAG",
-    venue: "OTH Amberg-Weiden · Research Report",
-    date: "Jun 2026",
+    title: "Rank-Faithfulness Consistency: A Query-Time Defense Against Dual-Surface Backdoors in RAG",
+    venue: "AI Security and Privacy, research report",
+    date: "06/2026",
+    result: "AUC 0.99–1.00",
     summary:
-      "A dual-surface backdoor threat against Retrieval-Augmented Generation — an LLM backdoored during QLoRA fine-tuning combined with a poisoned retrieval corpus. I build the full LLaMA-3-8B + FAISS pipeline and propose Rank-Faithfulness Consistency (RFC): a query-time defense that flags a retrieved document when its query relevance exceeds its similarity to the centroid of the co-retrieved context.",
+      "A dual backdoor threat against Retrieval-Augmented Generation: a LLaMA-3-8B model backdoored with QLoRA, plus a poisoned retrieval corpus (FAISS, 2,067 passages). I designed Rank-Faithfulness Consistency (RFC), a query-time defense that flags a retrieved document when its query relevance exceeds its similarity to the rest of the retrieved context.",
     highlights: [
-      "Near-perfect detection of realistic sparse corpus poisoning — AUC 0.99–1.00 at one poison document in the top-5",
-      "The matching defense restores end-to-end accuracy (conflict attack 0.756→0.858; ASR 0.21→0.014)",
-      "RFC and ingestion-time filtering are structurally complementary — proven against an adaptive, RFC-aware attacker",
+      "Detects single poisoned documents with an AUC of 0.99 to 1.00",
+      "Cuts the conflict attack's success rate from 21% to 1.4% (500 questions)",
+      "Tested against an adaptive attacker: shows the method's limits and that it complements filtering at indexing time",
     ],
-    tags: ["Python", "PyTorch", "LLaMA-3", "QLoRA", "FAISS"],
+    tags: ["Python", "PyTorch", "LLaMA-3", "QLoRA", "FAISS", "Sentence-Transformers", "scikit-learn"],
     links: [{ label: "GitHub", href: "https://github.com/SarathA9" }],
   },
   {
-    title:
-      "ECG Signal Processing for Anaesthesia Monitoring: A Rule-Based Classification Approach",
-    venue: "OTH Amberg-Weiden · Technical Report",
-    date: "Jan 2026",
+    title: "Autonomous Maze Navigation with the Husarion RosBot",
+    venue: "Robotics project",
+    date: "10/2026",
+    result: "5 of 5 mazes solved",
     summary:
-      "A simulation-based ECG processing chain for anaesthesia monitoring: synthetic awake/sleep signals are filtered to IEC 60601-2-27, R-peaks detected, and HRV features used to classify patient state — robust to operating-room interference.",
+      "Fully autonomous navigation through five unknown mazes to a blue and then a yellow pillar, using only on-board sensors. A layered occupancy grid from lidar, depth camera and floor colour, scan matching for localisation, A* path planning, pure-pursuit control and detection of floating walls.",
     highlights: [
-      "100% classification accuracy (awake vs. sleep) on synthetic data",
-      "31.4 dB attenuation of 100 Hz electrocautery interference",
-      "Zero-phase Butterworth band-pass filter (0.5–40 Hz), R-peak detection & SDNN/HRV features",
+      "Three parameter profiles solve all five mazes without entering forbidden areas",
+      "Fastest run: 277 seconds total",
     ],
-    tags: ["Python", "SciPy", "NumPy", "Signal Processing", "Biomedical"],
-    links: [{ label: "Read the report (PDF)", href: "/ECG_Anaesthesia_Monitoring_Report.pdf" }],
+    tags: ["Python", "NumPy", "Webots", "Lidar", "RGB-D", "A*"],
+    links: [],
   },
   {
-    title:
-      "MQTT Communication & UI for Autonomous Robot Delivery (ALIA-DELIVERY)",
-    venue: "OTH Amberg-Weiden · Contribution Report",
-    date: "Jul 2025",
+    title: "EMI Indoor Navigation with a Particle Filter",
+    venue: "Team project, three people",
+    date: "07/2026",
+    result: "4.3 m mean error",
     summary:
-      "A digital-twin simulation (Webots) for autonomous robots delivering medication and supplies in a care facility. I built the real-time MQTT messaging layer, a re-usable glassmorphic room-selection UI, and a thread-safe dynamic command-override system on top of A* pathfinding.",
+      "Reconstructing walking routes in the two-storey EMI building from smartphone sensor data. Step detection (IMU), heading (AHRS), BLE beacons and the floor plan are fused in a map-based particle filter. My part included data collection, route planning and path sketches.",
     highlights: [
-      "Sub-second response from UI command to robot movement",
-      "Thread-safe dynamic task switching with immediate path re-planning (A*)",
-      "Publish/subscribe MQTT (Paho) integration with automatic reconnection",
+      "100% floor detection across four recorded runs, including stair changes",
+      "Mean position error at reference doors down from 7.4 m to about 4.3 m",
     ],
-    tags: ["Python", "MQTT / Paho", "Webots", "A* Pathfinding", "Digital Twin"],
+    tags: ["Python", "NumPy", "SciPy", "pandas", "Sensor fusion"],
+    links: [],
+  },
+  {
+    title: "Machine Learning Challenge: Classification and Rule Reconstruction",
+    venue: "Machine Learning, exam project",
+    date: "06/2026",
+    result: "0.38 → 0.525 accuracy",
+    summary:
+      "A three-class problem (7,500 rows, 70 features) where standard models stall at about 0.38 accuracy. The key insight: the target rule is permutation-invariant. Sorted values, ECDF features and ExtraTrees lift five-fold cross-validated accuracy to 0.525 (chance is 0.333).",
+    highlights: [
+      "Exact reconstruction of the rule-based regression target in a domain-specific language (R² = 1.0)",
+      "All results cross-validated, with no data leakage",
+    ],
+    tags: ["Python", "scikit-learn", "XGBoost", "NumPy", "pandas"],
+    links: [],
+  },
+  {
+    title: "ECG Signal Processing for Anaesthesia Monitoring",
+    venue: "Technical report",
+    date: "01/2026",
+    result: "−31.4 dB interference",
+    summary:
+      "Rule-based classification of awake versus anaesthetised patients from ECG. A zero-phase Butterworth band-pass (0.5–40 Hz), R-peak detection and HRV features (SDNN).",
+    highlights: [
+      "100% accuracy on synthetic data",
+      "100 Hz electrocautery interference attenuated by 31.4 dB",
+    ],
+    tags: ["Python", "SciPy", "NumPy"],
+    links: [{ label: "Read the report", href: "/ECG_Anaesthesia_Monitoring_Report.pdf" }],
+  },
+  {
+    title: "ALIA Delivery: MQTT Communication and UI for Autonomous Delivery Robots",
+    venue: "Industrie 4.0 team project, contribution report",
+    date: "07/2025",
+    result: "< 1 s command to motion",
+    summary:
+      "A digital-twin simulation of delivery robots in a care facility. Real-time messaging over MQTT (Paho) with automatic reconnection, and thread-safe task switching with immediate A* re-planning.",
+    highlights: [
+      "Under one second from UI command to robot movement",
+      "Thread-safe dynamic task switching with instant path re-planning",
+    ],
+    tags: ["Python", "Webots", "MQTT", "A*", "JavaScript"],
     links: [
-      { label: "Read the report (PDF)", href: "/ALIA_Delivery_MQTT_Report.pdf" },
-      { label: "GitLab repository", href: "https://gitlab.com/marshal.sebastine/alia-delivery/-/tree/main" },
+      { label: "Read the report", href: "/ALIA_Delivery_MQTT_Report.pdf" },
+      { label: "GitLab", href: "https://gitlab.com/marshal.sebastine/alia-delivery/-/tree/main" },
     ],
   },
 ];
 
 export type Project = {
   title: string;
+  kind: string;
   blurb: string;
   tags: string[];
   href: string;
   linkLabel: string;
-  featured?: boolean;
 };
 
 export const projects: Project[] = [
   {
-    title: "RAG Backdoor Defense — RFC",
+    title: "NeuroTrack",
+    kind: "AI neurofeedback platform",
     blurb:
-      "A dual-surface backdoor study for Retrieval-Augmented Generation: a QLoRA-backdoored LLaMA-3-8B paired with a poisoned retrieval corpus. I designed Rank-Faithfulness Consistency (RFC), a query-time defense that detects poisoned documents (AUC 0.99–1.00), benchmarked against ingestion-time filtering and an adaptive attacker.",
-    tags: ["LLaMA-3", "QLoRA", "RAG", "FAISS", "PyTorch", "LLM Security"],
-    href: "https://github.com/SarathA9",
-    linkLabel: "GitHub",
-    featured: true,
-  },
-  {
-    title: "NeuroTrack — AI Neurofeedback Platform",
-    blurb:
-      "Real-time EEG-based neurofeedback training with ML-driven personalized cognitive-state analysis, live visualizations and WebSocket data streaming.",
+      "Real-time EEG-based neurofeedback with ML-driven analysis of cognitive states, live visualisation and WebSocket data streaming.",
     tags: ["React", "Node.js", "Flask", "TensorFlow", "WebSocket"],
     href: "https://github.com/SarathA9/NeuroTrack---AI-Driven-Neurofeedback",
-    linkLabel: "GitHub",
-    featured: true,
+    linkLabel: "View on GitHub",
   },
   {
-    title: "Smart Traffic Density Estimation",
+    title: "Smart Traffic Density",
+    kind: "Computer vision",
     blurb:
       "Real-time vehicle counting and traffic-density estimation with a transfer-learned YOLOv8 model, evaluated with confusion matrices and exported to ONNX.",
-    tags: ["YOLOv8", "Python", "OpenCV", "ONNX"],
+    tags: ["Python", "YOLOv8", "OpenCV", "ONNX"],
     href: "https://github.com/SarathA9/SmartTrafficDensityEstimation",
-    linkLabel: "GitHub",
-    featured: true,
+    linkLabel: "View on GitHub",
   },
   {
-    title: "Nirikshaka — Object Detector",
+    title: "Nirikshaka",
+    kind: "Object detection in the browser",
     blurb:
-      "In-browser object detection powered by TensorFlow.js and MobileNet, enriched with contextual information from the Wikipedia API.",
-    tags: ["TensorFlow.js", "React", "Tailwind", "MobileNet"],
+      "Object detection that runs entirely in the browser with TensorFlow.js and MobileNet, enriched with context from the Wikipedia API.",
+    tags: ["TensorFlow.js", "React", "Tailwind CSS", "MobileNet"],
     href: "https://nirikshaka.vercel.app",
-    linkLabel: "Live demo",
-    featured: true,
+    linkLabel: "Open live demo",
   },
   {
     title: "E-Learning Hub",
+    kind: "Course marketplace",
     blurb:
-      "A full e-learning marketplace: course catalog, cart & wishlist, Stripe payments, a seller dashboard with sales analytics, and JWT authentication.",
+      "An online course marketplace with catalogue, cart and wishlist, Stripe payments, a seller dashboard with sales analytics, and JWT authentication.",
     tags: ["React", "MUI", "MySQL", "Stripe", "JWT"],
     href: "https://github.com/SarathA9",
-    linkLabel: "GitHub",
+    linkLabel: "View on GitHub",
   },
   {
     title: "Mobile Clinic Software",
+    kind: "Bachelor's final project",
     blurb:
-      "Final-degree project: patient management (EHR, scheduling, reminders), telemedicine consultations, role-based access, and reporting & analytics.",
-    tags: ["Telemedicine", "Cloud", "EHR", "Full-Stack"],
+      "Patient management with electronic health records, scheduling and reminders, telemedicine consultations, role-based access, and reporting.",
+    tags: ["Full-stack", "Cloud", "EHR", "Telemedicine"],
     href: "https://github.com/SarathA9/MobileClinic",
-    linkLabel: "GitHub",
-  },
-  {
-    title: "TalkEase",
-    blurb:
-      "Real-time chat and collaboration app with Socket.io messaging and secure JWT + HTTP-cookie authentication.",
-    tags: ["React", "Node.js", "Firebase", "Socket.io"],
-    href: "https://github.com/SarathA9/TalkEase",
-    linkLabel: "GitHub",
-  },
-  {
-    title: "Digitalization of the Book",
-    blurb:
-      "Student research project: an interactive digital edition of “Jawaharlal Nehru: The Man and His Ideas” using destructive and non-destructive scanning techniques.",
-    tags: ["Research", "Digitization", "Interactive"],
-    href: "https://www.sdmcujire.in",
-    linkLabel: "Institution",
+    linkLabel: "View on GitHub",
   },
 ];
 
@@ -234,11 +246,13 @@ export type SkillGroup = { name: string; items: string[] };
 
 export const skills: SkillGroup[] = [
   { name: "Languages", items: ["Python", "JavaScript", "Java", "C#", "C", "SQL", "R"] },
+  { name: "AI and ML", items: ["PyTorch", "TensorFlow", "TensorFlow.js", "scikit-learn", "XGBoost", "YOLOv8", "OpenCV"] },
+  { name: "LLMs and security", items: ["LLaMA-3", "QLoRA", "Fine-tuning", "RAG", "FAISS", "Sentence-Transformers", "Backdoor and data-poisoning defense"] },
+  { name: "Robotics and signals", items: ["Webots", "Particle filters", "Occupancy grids", "A*", "Sensor fusion (IMU, lidar, BLE)", "SciPy"] },
   { name: "Frontend", items: ["React", "HTML5", "CSS3", "Tailwind CSS", "Bootstrap", "MUI", "Three.js"] },
-  { name: "Backend", items: ["Node.js", "Express", "Flask", "ASP.NET", "Java Servlets", "MVC"] },
+  { name: "Backend", items: ["Node.js", "Express", "Flask", "ASP.NET", "Java Servlets", "MVC", "JWT", "Stripe"] },
   { name: "Databases", items: ["MySQL", "PostgreSQL", "MongoDB", "Firebase"] },
-  { name: "AI / ML", items: ["TensorFlow", "TensorFlow.js", "Scikit-learn", "YOLOv8", "OpenCV"] },
-  { name: "Tools & Cloud", items: ["Git", "GitHub", "Postman", "Oracle Cloud", "Webots", "MQTT"] },
+  { name: "Tools and cloud", items: ["Git", "GitHub", "Jupyter", "Postman", "Oracle Cloud", "MQTT"] },
 ];
 
 export type Education = {
@@ -253,8 +267,8 @@ export const education: Education[] = [
   {
     degree: "M.Sc. Artificial Intelligence",
     school: "OTH Amberg-Weiden (Ostbayerische Technische Hochschule)",
-    location: "Germany",
-    period: "Current",
+    location: "Amberg, Germany",
+    period: "Since 2024",
     note: "Programme: Industrie 4.0 Informatik",
   },
   {
