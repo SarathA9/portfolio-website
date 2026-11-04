@@ -108,6 +108,10 @@ export default function HeroDesk() {
       const THREE = await import("three");
       const { RoundedBoxGeometry } = await import("three/examples/jsm/geometries/RoundedBoxGeometry.js");
       const { RoomEnvironment } = await import("three/examples/jsm/environments/RoomEnvironment.js");
+      const { EffectComposer } = await import("three/examples/jsm/postprocessing/EffectComposer.js");
+      const { RenderPass } = await import("three/examples/jsm/postprocessing/RenderPass.js");
+      const { UnrealBloomPass } = await import("three/examples/jsm/postprocessing/UnrealBloomPass.js");
+      const { OutputPass } = await import("three/examples/jsm/postprocessing/OutputPass.js");
       if (disposed) return;
 
       let renderer: import("three").WebGLRenderer;
@@ -126,6 +130,7 @@ export default function HeroDesk() {
       el.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
+      scene.background = new THREE.Color("#08090c"); // bloom needs an opaque background; CSS fades the edges
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
       scene.environment = env;
@@ -180,21 +185,94 @@ export default function HeroDesk() {
         mesh.scale.set(r, len, r);
       };
 
+      // ---------- procedural textures (no downloads) ----------
+      const canvasTex = (w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, repeat = 1, color = true) => {
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        draw(c.getContext("2d")!);
+        const t = new THREE.CanvasTexture(c);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(repeat, repeat);
+        t.anisotropy = 8;
+        if (color) t.colorSpace = THREE.SRGBColorSpace;
+        disposables.push(t);
+        return t;
+      };
+      let seedT = 3;
+      const rnd = () => ((seedT = (seedT * 16807) % 2147483647) - 1) / 2147483646;
+      // wood grain: long wavy streaks of darker and lighter oak
+      const woodMap = canvasTex(1024, 512, (c) => {
+        c.fillStyle = "#b8875c";
+        c.fillRect(0, 0, 1024, 512);
+        for (let i = 0; i < 260; i++) {
+          const y = rnd() * 512;
+          const shade = rnd();
+          c.strokeStyle = shade > 0.5 ? `rgba(120,78,44,${0.08 + rnd() * 0.18})` : `rgba(226,186,140,${0.06 + rnd() * 0.12})`;
+          c.lineWidth = 0.6 + rnd() * 2.4;
+          c.beginPath();
+          for (let x = 0; x <= 1024; x += 16) c.lineTo(x, y + Math.sin(x * 0.006 + i) * 6 + Math.sin(x * 0.031 + i * 3) * 1.5);
+          c.stroke();
+        }
+      });
+      // knit / cotton weave as a bump map
+      const weave = (fine: number) =>
+        canvasTex(256, 256, (c) => {
+          const img = c.createImageData(256, 256);
+          for (let y = 0; y < 256; y++)
+            for (let x = 0; x < 256; x++) {
+              const v = 128 + Math.sin(x * fine) * 34 * Math.sin(y * fine * 0.5) + (rnd() - 0.5) * 40;
+              const k = (y * 256 + x) * 4;
+              img.data[k] = img.data[k + 1] = img.data[k + 2] = v;
+              img.data[k + 3] = 255;
+            }
+          c.putImageData(img, 0, 0);
+        }, 6, false);
+      const cottonBump = weave(1.6);
+      // denim twill: diagonal lines with faded, uneven colour
+      const denimMap = canvasTex(256, 256, (c) => {
+        c.fillStyle = "#6a97c8";
+        c.fillRect(0, 0, 256, 256);
+        for (let i = -256; i < 256; i += 3) {
+          c.strokeStyle = `rgba(${rnd() > 0.5 ? "230,240,252" : "40,70,120"},${0.1 + rnd() * 0.15})`;
+          c.lineWidth = 1;
+          c.beginPath();
+          c.moveTo(i, 256);
+          c.lineTo(i + 256, 0);
+          c.stroke();
+        }
+        for (let i = 0; i < 1400; i++) {
+          c.fillStyle = `rgba(255,255,255,${rnd() * 0.08})`;
+          c.fillRect(rnd() * 256, rnd() * 256, 2, 2);
+        }
+      }, 5);
+      const denimBump = weave(2.4);
+      // skin: very subtle pores so it does not look like plastic
+      const skinBump = canvasTex(256, 256, (c) => {
+        const img = c.createImageData(256, 256);
+        for (let k = 0; k < img.data.length; k += 4) {
+          const v = 128 + (rnd() - 0.5) * 70;
+          img.data[k] = img.data[k + 1] = img.data[k + 2] = v;
+          img.data[k + 3] = 255;
+        }
+        c.putImageData(img, 0, 0);
+      }, 4, false);
+
       // ---------- materials ----------
       const M = {
-        wood: mat("#b8875c", { roughness: 0.55, clearcoat: 0.4, clearcoatRoughness: 0.5 }),
+        wood: mat("#ffffff", { map: woodMap, roughness: 0.5, clearcoat: 0.5, clearcoatRoughness: 0.35 }),
         metal: mat("#2a2e38", { roughness: 0.35, metalness: 0.7 }),
         monitor: mat("#1a1d25", { roughness: 0.4, metalness: 0.5 }),
         keyboard: mat("#2b2f3a", { roughness: 0.5 }),
         key: mat("#3c4150", { roughness: 0.55 }),
         chair: mat("#2c3140", { roughness: 0.6 }),
-        seat: mat("#3a4257", { roughness: 0.9, sheen: 1, sheenColor: new THREE.Color("#6a7590") }),
-        skin: mat("#a8694a", { roughness: 0.5, sheen: 0.35, sheenColor: new THREE.Color("#ffb08a") }),
-        sweater: mat("#16295a", { roughness: 0.95, sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color("#3f5aa0") }),
-        pants: mat("#5f8fc2", { roughness: 0.95, sheen: 0.25, sheenColor: new THREE.Color("#a9c8ea") }),
+        seat: mat("#3a4257", { roughness: 0.9, bumpMap: cottonBump, bumpScale: 0.9, sheen: 1, sheenColor: new THREE.Color("#6a7590") }),
+        skin: mat("#a8694a", { roughness: 0.48, bumpMap: skinBump, bumpScale: 0.25, sheen: 0.45, sheenRoughness: 0.4, sheenColor: new THREE.Color("#ff9e7a"), thickness: 0.4, transmission: 0.0 }),
+        sweater: mat("#16295a", { roughness: 0.95, bumpMap: cottonBump, bumpScale: 0.6, sheen: 0.55, sheenRoughness: 0.75, sheenColor: new THREE.Color("#4c68b0") }),
+        pants: mat("#ffffff", { map: denimMap, bumpMap: denimBump, bumpScale: 0.8, roughness: 0.95, sheen: 0.3, sheenColor: new THREE.Color("#c5dcf5") }),
         shoe: mat("#1a1b20", { roughness: 0.55 }),
         sole: mat("#2c2d33", { roughness: 0.8 }),
-        cap: mat("#41709f", { roughness: 0.95, sheen: 0.4, sheenColor: new THREE.Color("#8fb3da") }),
+        cap: mat("#4a78a8", { roughness: 0.95, bumpMap: denimBump, bumpScale: 0.7, sheen: 0.4, sheenColor: new THREE.Color("#9cc0e4") }),
         watch: mat("#141519", { roughness: 0.35, metalness: 0.4 }),
         bead: mat("#cfc8bb", { roughness: 0.35, clearcoat: 0.6 }),
         brow: mat("#16110e", { roughness: 0.8 }),
@@ -559,11 +637,30 @@ export default function HeroDesk() {
         disposables.push(m.geometry);
         guy.add(m);
       });
-      const hands = [0, 1].map(() => {
-        const h = new THREE.Mesh(new THREE.SphereGeometry(0.036, 16, 12), M.skin);
-        h.scale.set(1, 0.6, 1.25);
-        h.castShadow = true;
-        disposables.push(h.geometry);
+      // hands: palm, four fingers curled over the keys, and a thumb
+      const fingerGeo = new THREE.CapsuleGeometry(0.0085, 0.032, 4, 8);
+      const palmGeo = new RoundedBoxGeometry(0.07, 0.024, 0.07, 3, 0.011);
+      disposables.push(fingerGeo, palmGeo);
+      const hands = [0, 1].map((i) => {
+        const h = new THREE.Group();
+        const palm = new THREE.Mesh(palmGeo, M.skin);
+        palm.castShadow = true;
+        h.add(palm);
+        const fingers: import("three").Mesh[] = [];
+        for (let f = 0; f < 4; f++) {
+          const fg = new THREE.Mesh(fingerGeo, M.skin);
+          fg.castShadow = true;
+          fg.position.set(-0.024 + f * 0.016, -0.008, -0.045);
+          fg.rotation.x = Math.PI / 2 + 0.55;
+          fg.scale.setScalar(f === 0 || f === 3 ? 0.88 : 1);
+          h.add(fg);
+          fingers.push(fg);
+        }
+        const thumb = new THREE.Mesh(fingerGeo, M.skin);
+        thumb.position.set(i === 0 ? 0.038 : -0.038, -0.006, -0.012);
+        thumb.rotation.set(Math.PI / 2, 0, i === 0 ? 0.8 : -0.8);
+        h.add(thumb);
+        h.userData.fingers = fingers;
         return h;
       });
       const elbowBalls = [joint(M.skin, 0.047), joint(M.skin, 0.047)];
@@ -614,7 +711,7 @@ export default function HeroDesk() {
       const key = new THREE.DirectionalLight("#fff1e2", 2.4);
       key.position.set(2.2, 3.6, 2.2);
       key.castShadow = true;
-      key.shadow.mapSize.set(1024, 1024);
+      key.shadow.mapSize.set(2048, 2048);
       key.shadow.camera.left = -1.6;
       key.shadow.camera.right = 1.6;
       key.shadow.camera.top = 1.6;
@@ -693,6 +790,15 @@ export default function HeroDesk() {
         tex.needsUpdate = true;
       };
 
+      // ---------- post-processing: soft bloom from the screen and highlights ----------
+      const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+      const composer = new EffectComposer(renderer, rt);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.35, 0.6, 0.82);
+      composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+      disposables.push(rt);
+
       // ---------- interaction ----------
       const pointer = { x: 0, y: 0, tx: 0, ty: 0, inside: false };
       const onMove = (e: PointerEvent) => {
@@ -706,6 +812,8 @@ export default function HeroDesk() {
       const resize = () => {
         const w = el.clientWidth, h = el.clientHeight;
         renderer.setSize(w, h, false);
+        composer.setSize(w, h);
+        composer.setPixelRatio(renderer.getPixelRatio());
         camera.aspect = w / h;
         narrow = w / h < 1.1;
         camera.fov = narrow ? 34 : 28;
@@ -812,7 +920,13 @@ export default function HeroDesk() {
             band.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
           }
           hands[i].position.copy(handPos[i]);
-          hands[i].position.y += 0.006;
+          hands[i].position.y += 0.004;
+          hands[i].rotation.y = i === 0 ? -0.22 : 0.22;
+          // each finger taps on its own rhythm while typing
+          (hands[i].userData.fingers as import("three").Mesh[]).forEach((fg, f) => {
+            const tap = typing ? Math.max(0, Math.sin(t * 13 + f * 1.7 + i * 2.3)) : 0;
+            fg.rotation.x = Math.PI / 2 + 0.55 + tap * 0.35;
+          });
         }
 
         // steam
@@ -833,7 +947,7 @@ export default function HeroDesk() {
         camera.position.set(Math.sin(ang) * dist, 2.0 - pointer.y * 0.18, Math.cos(ang) * dist);
         camera.lookAt(target);
 
-        renderer.render(scene, camera);
+        composer.render();
       };
 
       let raf = 0;
@@ -855,6 +969,8 @@ export default function HeroDesk() {
         io.disconnect();
         disposables.forEach((d) => d.dispose());
         keys.dispose();
+        composer.dispose();
+        bloom.dispose();
         env.dispose();
         pmrem.dispose();
         renderer.dispose();

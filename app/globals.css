@@ -2224,6 +2224,10 @@ html.lenis body {
 .desk-stage[data-ready="true"] {
   opacity: 1;
 }
+.desk-stage {
+  -webkit-mask-image: radial-gradient(ellipse 62% 60% at 55% 52%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 60% at 55% 52%, #000 55%, transparent 100%);
+}
 .desk-stage canvas {
   display: block;
   width: 100%;
