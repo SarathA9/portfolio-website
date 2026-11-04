@@ -51,6 +51,7 @@ components/
   SceneBackground.tsx # faint 3D network behind the sections that morphs shape as you scroll
   ScrollFX.tsx      # smooth scrolling (Lenis) + eased scroll effects: hero sink-back, cards tilting in
   ProjectStrip.tsx  # horizontal scrapbook strip of projects: sideways scroll, drag, endless drift
+  Preloader.tsx     # loading sequence (once per session): logo assembles, name rises, real progress, curtain lifts
   Spotlight.tsx     # soft light under the pointer on cards
   ProjectArt.tsx    # line illustrations on the project cards
   AskPortfolio.tsx  # the search box (client component)

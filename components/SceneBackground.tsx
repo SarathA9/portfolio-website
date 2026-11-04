@@ -21,6 +21,11 @@ export default function SceneBackground() {
     let cleanup = () => {};
 
     (async () => {
+      // the background is decoration: start it only after the loading animation
+      if (document.documentElement.classList.contains("is-loading")) {
+        await new Promise<void>((r) => window.addEventListener("sa:loaded", () => r(), { once: true }));
+      }
+      if (disposed) return;
       const THREE = await import("three");
       if (disposed) return;
 

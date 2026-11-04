@@ -2252,3 +2252,240 @@ html.lenis body {
     padding-top: 0;
   }
 }
+
+/* ------------------------------------------------------------------
+   Loader (transform + opacity only, so it runs on the GPU)
+------------------------------------------------------------------- */
+html.is-loading,
+html.is-loading body {
+  overflow: hidden;
+}
+/* plain cover until the loader itself has mounted, so the page never flashes */
+html.is-loading body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+}
+html.is-revealing body::before {
+  display: none;
+}
+/* the hero title is delivered by the loader, so it waits and does not animate */
+html.is-loading .hero-name {
+  opacity: 0;
+  animation: none;
+}
+html.loader-done .hero-name {
+  animation: none;
+}
+html.is-loading:not(.is-revealing) .hero-inner > * {
+  animation-play-state: paused;
+}
+html.is-revealing .hero-inner > * {
+  animation-play-state: running;
+}
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.curtain {
+  position: absolute;
+  inset: -2px -2px auto;
+  height: calc(100% + 160px);
+  background:
+    radial-gradient(640px 420px at 50% 42%, rgb(142 166 255 / 0.12), transparent 70%),
+    var(--bg);
+  /* curved lower edge, visible as it lifts */
+  border-radius: 0 0 50% 50% / 0 0 160px 160px;
+  will-change: transform;
+}
+.loader-out .curtain {
+  animation: curtain-up 1.05s cubic-bezier(0.76, 0, 0.24, 1) 0.12s forwards;
+}
+@keyframes curtain-up {
+  to { transform: translateY(calc(-100% - 20px)); }
+}
+
+.loader-center {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: min(380px, 84vw);
+}
+
+/* logo */
+.lmark {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 30px;
+}
+.lm-edge {
+  position: absolute;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8ea6ff, #b69cff);
+  box-shadow: 0 0 10px rgb(142 166 255 / 0.65);
+  transform-origin: 0 50%;
+  transform: rotate(var(--deg)) scaleX(0);
+  animation: edge-grow 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes edge-grow {
+  to { transform: rotate(var(--deg)) scaleX(1); }
+}
+.lm-node {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #8ea6ff, #b69cff);
+  box-shadow: 0 0 18px rgb(142 166 255 / 0.55);
+  transform: scale(0);
+  animation: node-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, node-pulse 2.2s ease-in-out infinite;
+}
+.lm-n3 {
+  background: #e9edff;
+}
+@keyframes node-pop { to { transform: scale(1); } }
+@keyframes node-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+.lm-signal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px 2px rgb(182 156 255 / 0.9);
+  offset-path: path("M48 14 L78 74 L18 74 Z");
+  offset-rotate: 0deg;
+  opacity: 0;
+  animation: sig-in 0.3s ease-out 1.05s forwards, sig-run 1.5s cubic-bezier(0.45, 0, 0.55, 1) 1.05s infinite;
+}
+@keyframes sig-in { to { opacity: 1; } }
+@keyframes sig-run { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+
+/* name: same typeface and treatment as the hero title */
+.loader-name {
+  font-family: var(--font-name);
+  font-size: clamp(40px, 7vw, 64px);
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  text-align: left;
+  transform-origin: 0 0;
+  will-change: transform;
+  perspective: 600px;
+}
+.ln-line {
+  position: relative;
+  display: block;
+  white-space: nowrap;
+}
+.ln-plain {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  background: linear-gradient(180deg, #ffffff 30%, #a9b2c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ln-line + .ln-line .ln-plain {
+  background: linear-gradient(180deg, #dfe3ec 0%, #a9b2c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.ln-flat .ln-plain {
+  position: static;
+  opacity: 1;
+}
+.ln-flat .ln-char {
+  display: none;
+}
+.ln-char {
+  display: inline-block;
+  background: linear-gradient(180deg, #ffffff 30%, #a9b2c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transform-origin: 50% 100%;
+  transform: translateY(0.45em) rotateX(-80deg);
+  opacity: 0;
+  animation: char-in 0.9s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+}
+.ln-line + .ln-line .ln-char {
+  background: linear-gradient(180deg, #e6e9f2 0%, #a9b2c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+@keyframes char-in {
+  to { transform: none; opacity: 1; }
+}
+.loader-out .loader-name {
+  transition: transform 1.05s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+/* progress */
+.loader-foot {
+  width: 100%;
+  margin-top: 34px;
+  opacity: 0;
+  animation: foot-in 0.6s ease-out 0.9s forwards;
+}
+@keyframes foot-in { to { opacity: 1; } }
+.loader-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  color: var(--muted);
+}
+.loader-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  font-weight: 600;
+}
+.loader-bar {
+  margin-top: 10px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+.loader-bar span {
+  display: block;
+  height: 100%;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
+}
+/* everything except the name leaves first */
+.loader-out .lmark,
+.loader-out .loader-foot {
+  animation: bits-out 0.4s cubic-bezier(0.6, 0, 0.4, 1) forwards;
+}
+@keyframes bits-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-18px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-out { animation: loader-fade 0.35s ease-out forwards; }
+  .loader-out .curtain { animation: none; }
+  @keyframes loader-fade { to { opacity: 0; } }
+  .lm-edge { transform: rotate(var(--deg)); }
+  .lm-node, .ln-char { transform: none; opacity: 1; }
+  .loader-foot, .lm-signal { opacity: 1; }
+}

@@ -956,14 +956,30 @@ export default function HeroDesk() {
         if (!visible || document.hidden) return;
         step(Math.min(clock.getDelta(), 0.05), clock.elapsedTime);
       };
-      if (reduced) {
-        typedF = 420;
-        step(0, 3);
-      } else frame();
-      requestAnimationFrame(() => (el.dataset.ready = "true"));
+      // compile shaders in parallel where the browser supports it, so the first frame does not stall
+      try {
+        await renderer.compileAsync(scene, camera);
+      } catch {}
+      if (disposed) return;
+      typedF = 60;
+      step(0.016, 0.5); // one frame so the desk is ready behind the loader
+      el.dataset.ready = "true";
+      const begin = () => {
+        if (reduced) {
+          typedF = 420;
+          step(0, 3);
+        } else {
+          clock.start();
+          frame();
+        }
+      };
+      // keep the main thread free while the loading animation plays
+      if (document.documentElement.classList.contains("is-loading")) window.addEventListener("sa:loaded", begin, { once: true });
+      else begin();
 
       cleanup = () => {
         cancelAnimationFrame(raf);
+        window.removeEventListener("sa:loaded", begin);
         window.removeEventListener("pointermove", onMove);
         ro.disconnect();
         io.disconnect();
