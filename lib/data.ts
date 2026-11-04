@@ -236,7 +236,7 @@ export const skills: SkillGroup[] = [
   { name: "Languages", items: ["Python", "JavaScript", "Java", "C#", "C", "SQL", "R"] },
   { name: "Frontend", items: ["React", "HTML5", "CSS3", "Tailwind CSS", "Bootstrap", "MUI", "Three.js"] },
   { name: "Backend", items: ["Node.js", "Express", "Flask", "ASP.NET", "Java Servlets", "MVC"] },
-  { name: "Databases", items: ["MySQL", "MongoDB", "Firebase"] },
+  { name: "Databases", items: ["MySQL", "PostgreSQL", "MongoDB", "Firebase"] },
   { name: "AI / ML", items: ["TensorFlow", "TensorFlow.js", "Scikit-learn", "YOLOv8", "OpenCV"] },
   { name: "Tools & Cloud", items: ["Git", "GitHub", "Postman", "Oracle Cloud", "Webots", "MQTT"] },
 ];

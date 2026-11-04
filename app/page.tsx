@@ -1,29 +1,21 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import About from "@/components/About";
-import Experience from "@/components/Experience";
-import Research from "@/components/Research";
-import Projects from "@/components/Projects";
-import Skills from "@/components/Skills";
-import Education from "@/components/Education";
-import Contact from "@/components/Contact";
-import Footer from "@/components/Footer";
+import { Research, Projects, Experience, About, SkillsEducation, Contact } from "@/components/Sections";
 
 export default function Home() {
   return (
     <>
+      <a href="#research" className="skip">Skip to content</a>
       <Navbar />
+      <Hero />
       <main>
-        <Hero />
-        <About />
-        <Experience />
         <Research />
         <Projects />
-        <Skills />
-        <Education />
-        <Contact />
+        <Experience />
+        <About />
+        <SkillsEducation />
       </main>
-      <Footer />
+      <Contact />
     </>
   );
 }

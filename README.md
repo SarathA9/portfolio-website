@@ -1,8 +1,10 @@
 # Sarath Adukkadukkam — Portfolio
 
-A clean, minimal personal portfolio built with the current modern web stack.
+A personal portfolio built around one idea: an “Ask this portfolio” search box in the hero
+that ranks research, projects, roles and skills against what a visitor types, the way a
+RAG retriever ranks documents.
 
-**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4
+**Stack:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, Three.js, Schibsted Grotesk (self-hosted via Fontsource)
 
 ## Getting started
 
@@ -38,12 +40,19 @@ The following live in `public/` and are linked from the site:
 
 ```
 app/
-  layout.tsx      # fonts, metadata
+  layout.tsx      # font, metadata, JSON-LD
   page.tsx        # section order
-  globals.css     # theme tokens & base styles
+  globals.css     # design tokens (colours, type) and all styles
   icon.png        # favicon
-components/        # Navbar, Hero, About, Experience, Research, Projects, Skills, Education, Contact, Footer
+components/
+  Navbar.tsx
+  Hero.tsx
+  HeroScene.tsx     # the 3D chrome blob + orbiting document cards (Three.js, loaded lazily)
+  Tilt.tsx          # 3D tilt on the featured project cards
+  AskPortfolio.tsx  # the search box (client component)
+  Sections.tsx      # Research, Projects, Experience, About, Skills & Education, Contact
 lib/data.ts        # all editable content
-public/            # photo, résumé, report PDFs
+lib/search.ts      # the little retriever behind "Ask this portfolio" (synonyms live here)
+public/            # photos, résumé, report PDFs
 _old_site_backup/  # your previous vanilla HTML/CSS/JS site
 ```
