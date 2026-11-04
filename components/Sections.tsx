@@ -1,6 +1,6 @@
 import { about, profile, research, projects, experience, skills, education } from "@/lib/data";
 import { slug } from "@/lib/slug";
-import ProjectArt from "./ProjectArt";
+import ProjectCarousel from "./ProjectCarousel";
 
 function SectionHead({ id, title, note }: { id: string; title: string; note?: string }) {
   return (
@@ -102,7 +102,6 @@ export function Research() {
 }
 
 export function Projects() {
-  const n = projects.length;
   return (
     <section id="projects" className="sec" aria-labelledby="projects-title">
       <div className="wrap">
@@ -112,55 +111,7 @@ export function Projects() {
           note="Products I have built and shipped."
         />
       </div>
-      <div className="orbit" data-count={n} data-step="34" style={{ ["--n" as string]: n }}>
-        <div className="orbit-stage">
-          <div className="orbit-ring">
-            {projects.map((p, i) => (
-              <article
-                key={p.title}
-                id={`p-${slug(p.title)}`}
-                className="orbit-card card spot"
-                data-index={i}
-                style={{ ["--i" as string]: i }}
-              >
-                <div className="proj-visual" aria-hidden>
-                  <ProjectArt name={p.title} />
-                </div>
-                <p className="project-kind">{p.kind}</p>
-                <h3>
-                  <a href={p.href} {...ext(p.href)}>
-                    {p.title}
-                  </a>
-                </h3>
-                <p className="card-text">{p.blurb}</p>
-                <div className="card-foot">
-                  <Tags items={p.tags.slice(0, 4)} />
-                </div>
-                <span className="project-link">{p.linkLabel}</span>
-              </article>
-            ))}
-          </div>
-          <div className="orbit-nav">
-            <button type="button" className="orbit-btn" data-orbit-step="-1" aria-label="Previous project">
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-                <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <ol className="orbit-dots" aria-hidden>
-              {projects.map((p, i) => (
-                <li key={p.title} data-i={i}>
-                  {p.title}
-                </li>
-              ))}
-            </ol>
-            <button type="button" className="orbit-btn" data-orbit-step="1" aria-label="Next project">
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-                <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+      <ProjectCarousel projects={projects.map((p) => ({ ...p, id: `p-${slug(p.title)}` }))} />
     </section>
   );
 }

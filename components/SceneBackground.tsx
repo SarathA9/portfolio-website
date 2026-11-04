@@ -31,7 +31,7 @@ export default function SceneBackground() {
         return;
       }
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       el.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
