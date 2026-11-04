@@ -2252,3 +2252,154 @@ html.lenis body {
     padding-top: 0;
   }
 }
+
+/* ------------------------------------------------------------------
+   Loader
+------------------------------------------------------------------- */
+html.is-loading,
+html.is-loading body {
+  overflow: hidden;
+}
+/* plain cover until the loader itself has mounted, so the page never flashes */
+html.is-loading body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+}
+html.is-revealing body::before {
+  display: none;
+}
+/* hold the hero entrance until the curtain lifts */
+html.is-loading:not(.is-revealing) .hero-inner > * {
+  animation-play-state: paused;
+}
+html.is-revealing .hero-inner > * {
+  animation-play-state: running;
+}
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(600px 400px at 50% 45%, rgb(142 166 255 / 0.1), transparent 70%),
+    var(--bg);
+  clip-path: ellipse(150% 150% at 50% 0%);
+}
+.loader-out {
+  animation: loader-lift 1s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+@keyframes loader-lift {
+  0% { clip-path: ellipse(150% 150% at 50% 0%); }
+  100% { clip-path: ellipse(150% 0% at 50% 0%); }
+}
+.loader-out .loader-center {
+  animation: loader-center-out 0.7s cubic-bezier(0.6, 0, 0.4, 1) forwards;
+}
+@keyframes loader-center-out {
+  to { transform: translateY(-40px) scale(0.96); opacity: 0; }
+}
+.loader-center {
+  display: grid;
+  justify-items: center;
+  width: min(340px, 80vw);
+}
+.loader-mark {
+  overflow: visible;
+}
+.lm-edge {
+  fill: none;
+  stroke: url(#lg);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: lm-draw 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.35s forwards;
+}
+.lm-edge-glow {
+  stroke-width: 5;
+  opacity: 0.5;
+}
+@keyframes lm-draw { to { stroke-dashoffset: 0; } }
+.lm-node {
+  fill: url(#lg);
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+  animation: lm-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, lm-pulse 2s ease-in-out 1.2s infinite;
+}
+.lm-n1 { animation-delay: 0.05s, 1.2s; }
+.lm-n2 { animation-delay: 0.18s, 1.45s; }
+.lm-n3 { animation-delay: 0.31s, 1.7s; fill: #e9edff; }
+@keyframes lm-pop { to { transform: scale(1); } }
+@keyframes lm-pulse { 50% { transform: scale(1.18); } }
+.lm-signal {
+  fill: #fff;
+  opacity: 0;
+  animation: lm-fade 0.3s ease-out 0.95s forwards;
+  filter: drop-shadow(0 0 6px #b69cff);
+}
+@keyframes lm-fade { to { opacity: 1; } }
+
+.loader-name {
+  margin-top: 26px;
+  font-family: var(--font-name);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-bottom: 4px;
+}
+.loader-name span {
+  display: inline-block;
+  transform: translateY(110%);
+  opacity: 0;
+  animation: lname 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes lname { to { transform: none; opacity: 1; } }
+
+.loader-meta {
+  margin-top: 22px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  color: var(--muted);
+  opacity: 0;
+  animation: lm-fade 0.5s ease-out 0.8s forwards;
+}
+.loader-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  font-weight: 600;
+}
+.loader-bar {
+  margin-top: 10px;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+  opacity: 0;
+  animation: lm-fade 0.5s ease-out 0.8s forwards;
+}
+.loader-bar span {
+  display: block;
+  height: 100%;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 12px rgb(142 166 255 / 0.8);
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-out {
+    animation: loader-fade 0.35s ease-out forwards !important;
+  }
+  @keyframes loader-fade { to { opacity: 0; } }
+  .lm-edge { stroke-dashoffset: 0; }
+  .lm-node, .loader-name span { transform: none; opacity: 1; }
+  .loader-meta, .loader-bar, .lm-signal { opacity: 1; }
+}

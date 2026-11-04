@@ -6,6 +6,7 @@ import "@fontsource/rajdhani/700.css";
 import "@fontsource/caveat/500.css";
 import "@fontsource/caveat/700.css";
 import "./globals.css";
+import Preloader from "@/components/Preloader";
 
 const siteUrl = "https://sarathadukkadukkam.vercel.app";
 
@@ -112,8 +113,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={GeistSans.variable}>
+    <html lang="en" className={GeistSans.variable} suppressHydrationWarning>
+      <head>
+        <script
+          // decide before first paint whether to show the loader (once per session)
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(!sessionStorage.getItem('sa-loaded')){var d=document.documentElement;d.classList.add('is-loading');setTimeout(function(){d.classList.remove('is-loading','is-revealing')},7000)}}catch(e){}",
+          }}
+        />
+      </head>
       <body>
+        <Preloader />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
