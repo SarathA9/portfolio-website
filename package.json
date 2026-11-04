@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fontsource/rajdhani": "^5.3.0",
     "geist": "^1.9.0",
     "next": "^15.1.6",
     "react": "^19.0.0",

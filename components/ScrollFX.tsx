@@ -14,10 +14,27 @@ export default function ScrollFX() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     root.classList.add("fx");
 
+    const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".nav-links a"));
+    const targets = navLinks
+      .map((a) => document.querySelector<HTMLElement>(a.getAttribute("href") || ""))
+      .filter(Boolean) as HTMLElement[];
+
     let ticking = false;
     const update = () => {
       ticking = false;
       const vh = window.innerHeight;
+
+      // reading progress + current section in the nav
+      const max = document.documentElement.scrollHeight - vh;
+      root.style.setProperty("--sp", (window.scrollY / Math.max(1, max)).toFixed(4));
+      let current = -1;
+      targets.forEach((t, i) => {
+        if (t.getBoundingClientRect().top < vh * 0.4) current = i;
+      });
+      navLinks.forEach((a, i) => {
+        if (i === current) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
 
       const hero = document.querySelector<HTMLElement>(".hero");
       if (hero) {
@@ -37,7 +54,7 @@ export default function ScrollFX() {
         const r = orbit.getBoundingClientRect();
         const prog = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh)));
         const pos = prog * (n - 1);
-        orbit.style.setProperty("--rot", `${(-pos * 360) / n}deg`);
+        orbit.style.setProperty("--rot", `${-pos * Number(orbit.dataset.step || 360 / n)}deg`);
         orbit.style.setProperty("--prog", prog.toFixed(3));
         orbit.dataset.active = String(Math.round(pos));
       });
@@ -61,6 +78,22 @@ export default function ScrollFX() {
       window.scrollTo({ top: top + (span * i) / Math.max(1, n - 1), behavior: "smooth" });
     };
 
+    // Previous / next buttons on the carousel
+    const scrollToCard = (orbit: HTMLElement, i: number) => {
+      const n = Number(orbit.dataset.count || 1);
+      const k = Math.max(0, Math.min(n - 1, i));
+      const top = orbit.getBoundingClientRect().top + window.scrollY;
+      const span = orbit.offsetHeight - window.innerHeight;
+      window.scrollTo({ top: top + (span * k) / Math.max(1, n - 1) + 1, behavior: "smooth" });
+    };
+    const onClick = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-orbit-step]");
+      const orbit = btn?.closest<HTMLElement>(".orbit");
+      if (!btn || !orbit) return;
+      scrollToCard(orbit, Number(orbit.dataset.active || 0) + Number(btn.dataset.orbitStep));
+    };
+    document.addEventListener("click", onClick);
+
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
@@ -70,6 +103,7 @@ export default function ScrollFX() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       document.removeEventListener("focusin", onFocus);
+      document.removeEventListener("click", onClick);
     };
   }, []);
   return null;

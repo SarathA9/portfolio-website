@@ -48,6 +48,7 @@ export default function Navbar() {
           Download CV
         </a>
       </div>
+      <span className="progress" aria-hidden />
     </nav>
   );
 }

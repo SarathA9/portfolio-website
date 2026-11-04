@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
+import "@fontsource/rajdhani/500.css";
+import "@fontsource/rajdhani/600.css";
+import "@fontsource/rajdhani/700.css";
 import "./globals.css";
 
 const siteUrl = "https://sarathadukkadukkam.vercel.app";

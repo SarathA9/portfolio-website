@@ -380,7 +380,7 @@ export default function SceneBackground() {
         camera.lookAt(0, 0, 0);
 
         // quieter behind reading-heavy sections
-        const base = wide ? 0.62 : 0.45;
+        const base = wide ? 0.42 : 0.3;
         pointMat.uniforms.uAlpha.value = 1 - Math.min(1, smooth) * (1 - base);
         pointMat.uniforms.uTime.value = t;
         renderer.render(scene, camera);

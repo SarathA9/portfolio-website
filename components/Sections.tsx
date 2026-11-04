@@ -1,5 +1,6 @@
 import { about, profile, research, projects, experience, skills, education } from "@/lib/data";
 import { slug } from "@/lib/slug";
+import ProjectArt from "./ProjectArt";
 
 function SectionHead({ id, title, note }: { id: string; title: string; note?: string }) {
   return (
@@ -111,7 +112,7 @@ export function Projects() {
           note="Products I have built and shipped."
         />
       </div>
-      <div className="orbit" data-count={n} style={{ ["--n" as string]: n }}>
+      <div className="orbit" data-count={n} data-step="34" style={{ ["--n" as string]: n }}>
         <div className="orbit-stage">
           <div className="orbit-ring">
             {projects.map((p, i) => (
@@ -122,6 +123,9 @@ export function Projects() {
                 data-index={i}
                 style={{ ["--i" as string]: i }}
               >
+                <div className="proj-visual" aria-hidden>
+                  <ProjectArt name={p.title} />
+                </div>
                 <p className="project-kind">{p.kind}</p>
                 <h3>
                   <a href={p.href} {...ext(p.href)}>
@@ -136,13 +140,25 @@ export function Projects() {
               </article>
             ))}
           </div>
-          <ol className="orbit-dots" aria-hidden>
-            {projects.map((p, i) => (
-              <li key={p.title} data-i={i}>
-                {p.title}
-              </li>
-            ))}
-          </ol>
+          <div className="orbit-nav">
+            <button type="button" className="orbit-btn" data-orbit-step="-1" aria-label="Previous project">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+                <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <ol className="orbit-dots" aria-hidden>
+              {projects.map((p, i) => (
+                <li key={p.title} data-i={i}>
+                  {p.title}
+                </li>
+              ))}
+            </ol>
+            <button type="button" className="orbit-btn" data-orbit-step="1" aria-label="Next project">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+                <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>

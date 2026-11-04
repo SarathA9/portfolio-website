@@ -14,10 +14,14 @@ export default function Hero() {
       <header className="hero" id="top">
         <div className="hero-glow" aria-hidden />
         <div className="wrap hero-inner">
-          <p className="pill">
-            <span className="dot" aria-hidden />
-            Open to working-student and internship roles
-          </p>
+          <div className="hero-badge">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/avatar.jpg" alt="" width={40} height={40} className="avatar" />
+            <p className="pill">
+              <span className="dot" aria-hidden />
+              Open to working-student and internship roles
+            </p>
+          </div>
           <h1 className="hero-name">Sarath Adukkadukkam</h1>
           <p className="hero-role">
             AI engineer focused on LLM security, and full-stack developer.
