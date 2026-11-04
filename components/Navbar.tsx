@@ -23,7 +23,7 @@ export default function Navbar() {
           ))}
         </ul>
         <a className="nav-cv" href={profile.resume} target="_blank" rel="noopener">
-          CV
+          Download CV
         </a>
       </div>
     </nav>

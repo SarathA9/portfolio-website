@@ -45,9 +45,9 @@ export default function AskPortfolio() {
     <div className="ask">
       <div className="ask-head">
         <label htmlFor={inputId} className="ask-label">
-          Ask this portfolio
+          Search my work
         </label>
-        <span className="ask-hint">Results ranked by match, top 5</span>
+        <span className="ask-hint">Top 5 results, ranked by relevance</span>
       </div>
 
       <div className="ask-field">

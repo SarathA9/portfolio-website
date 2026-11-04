@@ -1,10 +1,10 @@
 # Sarath Adukkadukkam — Portfolio
 
-A personal portfolio built around one idea: an “Ask this portfolio” search box in the hero
+A personal portfolio built around one idea: a “Search my work” box under the hero
 that ranks research, projects, roles and skills against what a visitor types, the way a
 RAG retriever ranks documents.
 
-**Stack:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, Three.js, Schibsted Grotesk (self-hosted via Fontsource)
+**Stack:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, Three.js, Geist (self-hosted via the geist package)
 
 ## Getting started
 
@@ -47,8 +47,8 @@ app/
 components/
   Navbar.tsx
   Hero.tsx
-  HeroScene.tsx     # the 3D chrome blob + orbiting document cards (Three.js, loaded lazily)
-  Tilt.tsx          # 3D tilt on the featured project cards
+  NeuralField.tsx   # the 3D neural-network hero background (Three.js, loaded lazily)
+  Spotlight.tsx     # soft light under the pointer on cards
   AskPortfolio.tsx  # the search box (client component)
   Sections.tsx      # Research, Projects, Experience, About, Skills & Education, Contact
 lib/data.ts        # all editable content

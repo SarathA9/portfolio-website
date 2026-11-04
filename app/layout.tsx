@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/schibsted-grotesk";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
 const siteUrl = "https://sarathadukkadukkam.vercel.app";
@@ -107,7 +107,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={GeistSans.variable}>
       <body>
         <script
           type="application/ld+json"
