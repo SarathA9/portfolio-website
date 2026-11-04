@@ -9,7 +9,8 @@ import Lenis from "lenis";
  * effects glide instead of jumping with each wheel tick.
  *  - .hero gets --hp (0 → 1 while scrolling past it): its content sinks back
  *  - every .depth element gets --p (0 → 1 as it enters): it tilts up into place
- *  - the nav shows the current section and a reading-progress line (--sp)
+ *  - the nav shows the current section
+ *  - the about scrapbook gets .in when it scrolls into view, so its pieces drop in
  */
 export default function ScrollFX() {
   useEffect(() => {
@@ -33,7 +34,6 @@ export default function ScrollFX() {
     const depth = Array.from(document.querySelectorAll<HTMLElement>(".depth"));
     const state = new Map<HTMLElement, number>();
     let hp = 0;
-    let sp = 0;
     let current = -2;
 
     let raf = 0;
@@ -47,9 +47,6 @@ export default function ScrollFX() {
       const vh = window.innerHeight;
       const k = reduced ? 1 : 1 - Math.exp(-dt * 9); // frame-rate independent easing
 
-      const max = root.scrollHeight - vh;
-      sp += (window.scrollY / Math.max(1, max) - sp) * k;
-      root.style.setProperty("--sp", sp.toFixed(4));
 
       let cur = -1;
       targets.forEach((t, i) => {
@@ -91,6 +88,19 @@ export default function ScrollFX() {
     };
     raf = requestAnimationFrame(frame);
 
+    // Scrapbook pieces drop onto the page once, when the section comes into view
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            io.unobserve(e.target);
+          }
+        }),
+      { threshold: 0.18 }
+    );
+    document.querySelectorAll(".scrapbook").forEach((el) => io.observe(el));
+
     // In-page links glide to an exact position just below the sticky nav
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
@@ -108,6 +118,7 @@ export default function ScrollFX() {
 
     return () => {
       document.removeEventListener("click", onClick);
+      io.disconnect();
       cancelAnimationFrame(raf);
       lenis?.destroy();
       root.classList.remove("fx");
