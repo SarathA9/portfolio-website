@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 /**
  * A fixed 3D network behind the whole page that changes shape as you scroll:
- * sphere (hero) → double helix (research) → wave field (projects)
+ * neural network (hero) → double helix (research) → wave field (projects)
  * → ring (experience) → galaxy (contact). Nodes keep their identity while
  * morphing, so the same network visibly flows from one form into the next.
  */
@@ -51,42 +51,62 @@ export default function SceneBackground() {
       const V = Float32Array.from({ length: N }, rand);
       const W = Float32Array.from({ length: N }, rand);
 
-      // Sphere base positions (also used to build the links)
-      const sphere = new Float32Array(N * 3);
-      for (let i = 0; i < N; i++) {
-        const k = i + 0.5;
-        const phi = Math.acos(1 - (2 * k) / N);
-        const theta = Math.PI * (1 + Math.sqrt(5)) * k;
-        const inner = i % 6 === 0;
-        const r = inner ? 0.6 + W[i] * 1.3 : 2.3 + (W[i] - 0.5) * 0.35;
-        sphere[i * 3] = r * Math.cos(theta) * Math.sin(phi);
-        sphere[i * 3 + 1] = r * Math.sin(theta) * Math.sin(phi) * 0.92;
-        sphere[i * 3 + 2] = r * Math.cos(phi);
+      // Hero shape: a small, readable neural network (input → hidden → output).
+      // Only the first M nodes form the visible network; the rest sit on top of them
+      // and spread out into their own positions when the network morphs on scroll.
+      const LAYERS = [8, 14, 18, 14, 8, 4];
+      const RADII = [1.05, 1.45, 1.7, 1.45, 1.05, 0.55];
+      const GAP = 1.5;
+      const M = LAYERS.reduce((x, y) => x + y, 0);
+      const layerOf = new Int16Array(N);
+      const sphere = new Float32Array(N * 3); // base positions of the network
+      {
+        let i = 0;
+        LAYERS.forEach((count, L) => {
+          for (let k = 0; k < count; k++, i++) {
+            const r = count === 1 ? 0 : RADII[L] * Math.sqrt((k + 0.5) / count);
+            const a = k * 2.399963 + L * 0.7;
+            sphere[i * 3] = (L - (LAYERS.length - 1) / 2) * GAP;
+            sphere[i * 3 + 1] = Math.sin(a) * r;
+            sphere[i * 3 + 2] = Math.cos(a) * r * 0.45;
+            layerOf[i] = L;
+          }
+        });
+        for (; i < N; i++) {
+          const src = i % M;
+          sphere.set([sphere[src * 3], sphere[src * 3 + 1], sphere[src * 3 + 2]], i * 3);
+          layerOf[i] = layerOf[src];
+        }
       }
 
       const edges: [number, number][] = [];
       {
-        const seen = new Set<number>();
-        for (let i = 0; i < N; i++) {
-          const near: { j: number; d: number }[] = [];
-          for (let j = 0; j < N; j++) {
-            if (j === i) continue;
-            const dx = sphere[i * 3] - sphere[j * 3];
-            const dy = sphere[i * 3 + 1] - sphere[j * 3 + 1];
-            const dz = sphere[i * 3 + 2] - sphere[j * 3 + 2];
-            const d = dx * dx + dy * dy + dz * dz;
-            if (d < 0.75) near.push({ j, d });
-          }
-          near.sort((a, b) => a.d - b.d);
-          for (const { j } of near.slice(0, 3)) {
-            const key = Math.min(i, j) * N + Math.max(i, j);
-            if (!seen.has(key)) {
-              seen.add(key);
-              edges.push([i, j]);
+        const starts: number[] = [];
+        LAYERS.reduce((acc, c) => (starts.push(acc), acc + c), 0);
+        for (let L = 0; L < LAYERS.length - 1; L++) {
+          const a0 = starts[L], a1 = a0 + LAYERS[L];
+          const b0 = starts[L + 1], b1 = b0 + LAYERS[L + 1];
+          const fan = Math.min(LAYERS[L + 1], L === LAYERS.length - 2 ? 4 : 5);
+          for (let i = a0; i < a1; i++) {
+            const near: { j: number; d: number }[] = [];
+            for (let j = b0; j < b1; j++) {
+              const dy = sphere[i * 3 + 1] - sphere[j * 3 + 1];
+              const dz = sphere[i * 3 + 2] - sphere[j * 3 + 2];
+              near.push({ j, d: dy * dy + dz * dz });
             }
+            near.sort((x, y) => x.d - y.d);
+            for (let k = 0; k < fan; k++) edges.push([i, near[k].j]);
           }
         }
       }
+      // natural length of each link in the network, so stretched links can fade during morphs
+      const baseLen = new Float32Array(edges.length);
+      edges.forEach(([i, j], e) => {
+        const dx = sphere[i * 3] - sphere[j * 3];
+        const dy = sphere[i * 3 + 1] - sphere[j * 3 + 1];
+        const dz = sphere[i * 3 + 2] - sphere[j * 3 + 2];
+        baseLen[e] = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      });
 
       let wide = window.innerWidth >= 960;
       const zAxis = new THREE.Vector3(0, 0, 1);
@@ -110,12 +130,13 @@ export default function SceneBackground() {
         switch (k) {
           case 0: {
             out.set(sphere[i * 3], sphere[i * 3 + 1], sphere[i * 3 + 2]);
-            rotY(out, t * 0.06);
-            rotX(out, 0.25);
-            const s = wide ? 0.86 : 1;
+            // gentle sway rather than a full spin, so the layers stay readable
+            rotY(out, 0.38 + Math.sin(t * 0.16) * 0.14);
+            rotX(out, 0.14 + Math.sin(t * 0.11) * 0.05);
+            const s = wide ? 0.6 : 0.48;
             out.multiplyScalar(s);
-            out.x += wide ? 2.6 : 0;
-            out.y += wide ? 0.25 : -0.4;
+            out.x += wide ? 2.85 : 0;
+            out.y += wide ? 0.15 : -0.6;
             break;
           }
           case 1: {
@@ -175,9 +196,11 @@ export default function SceneBackground() {
       const col = new Float32Array(N * 3);
       const size = new Float32Array(N);
       for (let i = 0; i < N; i++) {
-        const c = cA.clone().lerp(cB, U[i]).lerp(cC, V[i] * 0.5);
+        // colour runs across the layers: cyan inputs → periwinkle → violet outputs
+        const tL = layerOf[i] / (LAYERS.length - 1);
+        const c = cC.clone().lerp(cA, Math.min(1, tL * 2)).lerp(cB, Math.max(0, tL * 2 - 1)).lerp(cA, V[i] * 0.15);
         col.set([c.r, c.g, c.b], i * 3);
-        size[i] = i % 6 === 0 ? 1.6 : 0.8 + W[i] * 1.4;
+        size[i] = i < M ? (layerOf[i] === LAYERS.length - 1 ? 4.2 : 3.0) + W[i] * 0.6 : 0.7 + W[i] * 1.1;
       }
 
       const pGeo = new THREE.BufferGeometry();
@@ -246,8 +269,11 @@ export default function SceneBackground() {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 64, 64);
       const dotTex = new THREE.CanvasTexture(dotCanvas);
-      const S = 46;
-      const signals = Array.from({ length: S }, () => ({ e: Math.floor(rand() * edges.length), t: rand(), v: 0.35 + rand() * 0.5 }));
+      const outEdges: number[][] = Array.from({ length: N }, () => []);
+      edges.forEach(([i], e) => outEdges[i].push(e));
+      const inputEdges = edges.map((_, e) => e).filter((e) => layerOf[edges[e][0]] === 0);
+      const S = 36;
+      const signals = Array.from({ length: S }, () => ({ e: Math.floor(rand() * edges.length), t: rand(), v: 0.9 + rand() * 0.8 }));
       const sPos = new Float32Array(S * 3);
       const sGeo = new THREE.BufferGeometry();
       sGeo.setAttribute("position", new THREE.BufferAttribute(sPos, 3));
@@ -349,22 +375,24 @@ export default function SceneBackground() {
           const dy = lPos[e * 6 + 1] - lPos[e * 6 + 4];
           const dz = lPos[e * 6 + 2] - lPos[e * 6 + 5];
           const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          const f = Math.max(0, Math.min(1, 1 - (len - 0.8) / 0.5));
+          const f = Math.max(0, Math.min(1, 1 - (len / baseLen[e] - 1.15) / 0.5));
           for (let c = 0; c < 6; c++) lCol[e * 6 + c] = lBase[e * 6 + c] * f;
         }
         lGeo.attributes.position.needsUpdate = true;
         lGeo.attributes.color.needsUpdate = true;
         // links belong to the sphere; they fade as it unfolds into other shapes
         const sphereW = Math.max(0, 1 - smooth);
-        lineMat.opacity = 0.14 * sphereW * sphereW;
+        lineMat.opacity = 0.32 * sphereW * sphereW;
 
         for (let k = 0; k < S; k++) {
           const sg = signals[k];
           sg.t += dt * sg.v;
           if (sg.t >= 1) {
-            const end = edges[sg.e][1];
-            const next = edges.findIndex(([x], idx) => x === end && idx !== sg.e);
-            sg.e = next >= 0 ? next : Math.floor(rand() * edges.length);
+            // continue forward through the network; at the output, start a new pass at the input
+            const nextEdges = outEdges[edges[sg.e][1]];
+            sg.e = nextEdges.length
+              ? nextEdges[Math.floor(rand() * nextEdges.length)]
+              : inputEdges[Math.floor(rand() * inputEdges.length)];
             sg.t = 0;
           }
           const [i, j] = edges[sg.e];
