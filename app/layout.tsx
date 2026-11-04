@@ -1,25 +1,11 @@
 import type { Metadata } from "next";
-import { Rajdhani, Space_Grotesk } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import "@fontsource/rajdhani/500.css";
+import "@fontsource/rajdhani/600.css";
+import "@fontsource/rajdhani/700.css";
+import "@fontsource/caveat/500.css";
+import "@fontsource/caveat/700.css";
 import "./globals.css";
-import Aurora from "@/components/Aurora";
-import ThreeBackground from "@/components/ThreeBackground";
-import ScrollProgress from "@/components/ScrollProgress";
-import Preloader from "@/components/Preloader";
-
-const rajdhani = Rajdhani({
-  subsets: ["latin"],
-  variable: "--font-rajdhani",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-// Display face used only for the hero name
-const heroFont = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-hero",
-  weight: ["600", "700"],
-  display: "swap",
-});
 
 const siteUrl = "https://sarathadukkadukkam.vercel.app";
 
@@ -126,26 +112,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${rajdhani.variable} ${heroFont.variable}`}
-    >
+    <html lang="en" className={GeistSans.variable}>
       <body>
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();",
-          }}
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
         />
-        <Preloader />
-        <Aurora />
-        <ThreeBackground />
-        <ScrollProgress />
         {children}
       </body>
     </html>
