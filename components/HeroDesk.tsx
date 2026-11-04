@@ -424,16 +424,33 @@ export default function HeroDesk() {
       torsoGroup.position.copy(pelvis);
       guy.add(torsoGroup);
       // torso leans forward toward the desk
-      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.24, 8, 20), M.sweater);
-      torso.position.set(0, 0.22, -0.04);
+      // one smooth, broad torso: wide shoulders tapering slightly to the waist
+      const torsoGeo = new RoundedBoxGeometry(0.42, 0.5, 0.25, 6, 0.11);
+      {
+        const pos = torsoGeo.attributes.position;
+        for (let v = 0; v < pos.count; v++) {
+          const y = pos.getY(v);
+          const taper = 0.88 + ((y + 0.25) / 0.5) * 0.14; // narrower at the waist
+          pos.setX(v, pos.getX(v) * taper);
+        }
+        torsoGeo.computeVertexNormals();
+      }
+      const torso = new THREE.Mesh(torsoGeo, M.sweater);
+      torso.position.set(0, 0.25, -0.05);
       torso.rotation.x = -0.22;
-      torso.scale.set(1.12, 1, 0.8);
+      torso.castShadow = true;
+      disposables.push(torsoGeo);
+      torsoGroup.add(torso);
+      // oversized tee hangs down over the waistband and seat
+      const hem = box(0.4, 0.14, 0.3, 0.06, M.sweater);
+      hem.position.set(0, 0.03, 0.0);
+      add(torsoGroup, hem);
       torso.castShadow = true;
       disposables.push(torso.geometry);
       torsoGroup.add(torso);
       // crew-neck rib of the tee
-      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.012, 10, 24), M.sweater);
-      collar.position.set(0, 0.46, -0.12);
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.013, 10, 24), M.sweater);
+      collar.position.set(0, 0.47, -0.13);
       collar.rotation.x = Math.PI / 2 - 0.25;
       collar.castShadow = true;
       disposables.push(collar.geometry);
@@ -442,7 +459,7 @@ export default function HeroDesk() {
       const headGroup = new THREE.Group();
       headGroup.position.set(0, 0.5, -0.13);
       torsoGroup.add(headGroup);
-      const neckM = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.1, 16), M.skin);
+      const neckM = new THREE.Mesh(new THREE.CylinderGeometry(0.056, 0.064, 0.1, 16), M.skin);
       neckM.position.y = 0.02;
       disposables.push(neckM.geometry);
       headGroup.add(neckM);
@@ -450,7 +467,16 @@ export default function HeroDesk() {
       head.position.set(0, 0.14, -0.01);
       headGroup.add(head);
       const skull = new THREE.Mesh(new THREE.SphereGeometry(0.105, 32, 24), M.skin);
-      skull.scale.set(0.92, 1.05, 1);
+      skull.scale.set(0.95, 1.02, 1);
+      const jaw = box(0.15, 0.08, 0.15, 0.04, M.skin);
+      jaw.position.set(0, -0.06, -0.02);
+      add(head, jaw);
+      // light stubble along the jaw and chin
+      const stubbleMat = mat("#3a2a22", { roughness: 1, transparent: true, opacity: 0.32 });
+      disposables.push(stubbleMat);
+      const stubble = box(0.154, 0.05, 0.154, 0.04, stubbleMat);
+      stubble.position.set(0, -0.075, -0.022);
+      head.add(stubble);
       skull.castShadow = true;
       disposables.push(skull.geometry);
       head.add(skull);
@@ -466,7 +492,7 @@ export default function HeroDesk() {
         head.add(eye);
       }
       for (const sx of [-1, 1]) {
-        const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.005, 0.022, 4, 8), M.brow);
+        const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.0075, 0.026, 4, 8), M.brow);
         brow.position.set(sx * 0.036, 0.034, -0.096);
         brow.rotation.z = Math.PI / 2 + sx * 0.12;
         disposables.push(brow.geometry);
@@ -488,19 +514,14 @@ export default function HeroDesk() {
       hairBack.scale.set(1.02, 1, 1.04);
       disposables.push(hairBack.geometry);
       head.add(hairBack);
-      const hairLong = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.12, 6, 16), M.hair);
-      hairLong.position.set(0, -0.085, 0.075);
-      hairLong.rotation.x = 0.28;
-      hairLong.scale.set(1.3, 1, 0.6);
-      for (const sx of [-1, 1]) {
-        // hair tucked behind the ears
-        const side = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.06, 4, 10), M.hair);
-        side.position.set(sx * 0.082, -0.04, 0.062);
-        side.rotation.x = 0.25;
-        disposables.push(side.geometry);
-        head.add(side);
-      }
-      hairLong.castShadow = true;
+      // short hair at the back, ending at the nape
+      // follows the curve of the back of the head, just below the cap
+      const hairLong = new THREE.Mesh(
+        new THREE.SphereGeometry(0.112, 28, 12, Math.PI / 2 - 1.0, 2.0, Math.PI * 0.5, Math.PI * 0.2),
+        M.hair
+      );
+      hairLong.rotation.x = -0.15;
+      hairLong.position.set(0, 0, 0.004);
       disposables.push(hairLong.geometry);
       head.add(hairLong);
       // blue cap with brim
@@ -523,12 +544,12 @@ export default function HeroDesk() {
       head.add(button);
 
       // arms (shoulder → elbow → hand), rebuilt every frame for typing
-      const shoulder = [new THREE.Vector3(-0.17, 1.0, 0.56), new THREE.Vector3(0.17, 1.0, 0.56)];
-      const elbow = [new THREE.Vector3(-0.23, 0.82, 0.4), new THREE.Vector3(0.23, 0.82, 0.4)];
+      const shoulder = [new THREE.Vector3(-0.2, 0.99, 0.57), new THREE.Vector3(0.2, 0.99, 0.57)];
+      const elbow = [new THREE.Vector3(-0.27, 0.82, 0.4), new THREE.Vector3(0.27, 0.82, 0.4)];
       const handBase = [new THREE.Vector3(-0.09, 0.815, 0.13), new THREE.Vector3(0.09, 0.815, 0.13)];
-      const upperArm = [limb(M.skin, 0.042), limb(M.skin, 0.042)];
-      const sleeves = [limb(M.sweater, 0.062), limb(M.sweater, 0.062)];
-      const foreArm = [limb(M.skin, 0.036), limb(M.skin, 0.036)];
+      const upperArm = [limb(M.skin, 0.05), limb(M.skin, 0.05)];
+      const sleeves = [limb(M.sweater, 0.072), limb(M.sweater, 0.072)];
+      const foreArm = [limb(M.skin, 0.042), limb(M.skin, 0.042)];
       // black watch on his left wrist, bead bracelet on his right
       const watch = new THREE.Mesh(new THREE.CylinderGeometry(0.041, 0.041, 0.022, 20), M.watch);
       const watchFace = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.01, 20), M.watch);
@@ -545,11 +566,11 @@ export default function HeroDesk() {
         disposables.push(h.geometry);
         return h;
       });
-      const elbowBalls = [joint(M.skin, 0.04), joint(M.skin, 0.04)];
-      const wrists = [joint(M.skin, 0.034), joint(M.skin, 0.034)];
+      const elbowBalls = [joint(M.skin, 0.047), joint(M.skin, 0.047)];
+      const wrists = [joint(M.skin, 0.04), joint(M.skin, 0.04)];
       [...upperArm, ...sleeves, ...foreArm, ...hands, ...elbowBalls, ...wrists].forEach((m) => guy.add(m));
       const shoulderBalls = [0, 1].map((i) => {
-        const s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), M.sweater);
+        const s = new THREE.Mesh(new THREE.SphereGeometry(0.068, 16, 12), M.sweater);
         s.position.copy(shoulder[i]);
         s.castShadow = true;
         disposables.push(s.geometry);
@@ -557,9 +578,13 @@ export default function HeroDesk() {
         return s;
       });
 
+      // seat: one solid block, so there is no crease between the legs at the back
+      const seatBlock = box(0.3, 0.14, 0.3, 0.06, M.pants);
+      seatBlock.position.set(0, 0.57, 0.64);
+      add(guy, seatBlock);
       // legs: hip → knee → ankle
       for (const sx of [-1, 1]) {
-        const hip = new THREE.Vector3(sx * 0.09, 0.56, 0.66);
+        const hip = new THREE.Vector3(sx * 0.085, 0.56, 0.56);
         const knee = new THREE.Vector3(sx * 0.1, 0.56, 0.32);
         const ankle = new THREE.Vector3(sx * 0.11, 0.12, 0.34);
         const thigh = limb(M.pants, 0.074);
@@ -569,15 +594,13 @@ export default function HeroDesk() {
         guy.add(thigh, shin);
         const kneeBall = joint(M.pants, 0.074);
         kneeBall.position.copy(knee);
-        const hipBall = joint(M.pants, 0.076);
         // flared hem over the shoe
         const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.088, 0.06, 18), M.pants);
         hem.position.set(ankle.x, 0.1, ankle.z);
         hem.castShadow = true;
         disposables.push(hem.geometry);
         guy.add(hem);
-        hipBall.position.copy(hip);
-        guy.add(kneeBall, hipBall);
+        guy.add(kneeBall);
         const shoe = box(0.1, 0.07, 0.2, 0.03, M.shoe);
         shoe.position.set(sx * 0.11, 0.045, 0.3);
         add(guy, shoe);
