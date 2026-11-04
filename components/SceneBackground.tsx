@@ -356,7 +356,7 @@ export default function SceneBackground() {
         lGeo.attributes.color.needsUpdate = true;
         // links belong to the sphere; they fade as it unfolds into other shapes
         const sphereW = Math.max(0, 1 - smooth);
-        lineMat.opacity = 0.05 + 0.09 * sphereW;
+        lineMat.opacity = 0.14 * sphereW * sphereW;
 
         for (let k = 0; k < S; k++) {
           const sg = signals[k];
@@ -371,7 +371,7 @@ export default function SceneBackground() {
           for (let c = 0; c < 3; c++) sPos[k * 3 + c] = cur[i * 3 + c] + (cur[j * 3 + c] - cur[i * 3 + c]) * sg.t;
         }
         sGeo.attributes.position.needsUpdate = true;
-        sMat.opacity = 0.95 * (0.25 + 0.75 * sphereW);
+        sMat.opacity = 0.95 * sphereW;
 
         // fly-through: the camera dips into the network between hero and helix
         const dip = Math.sin(Math.min(1, smooth) * Math.PI);
@@ -380,8 +380,8 @@ export default function SceneBackground() {
         camera.lookAt(0, 0, 0);
 
         // quieter behind reading-heavy sections
-        const base = wide ? 0.42 : 0.3;
-        pointMat.uniforms.uAlpha.value = 1 - Math.min(1, smooth) * (1 - base);
+        const base = wide ? 0.14 : 0.1;
+        pointMat.uniforms.uAlpha.value = 1 - Math.min(1, smooth * 1.8) * (1 - base);
         pointMat.uniforms.uTime.value = t;
         renderer.render(scene, camera);
       };

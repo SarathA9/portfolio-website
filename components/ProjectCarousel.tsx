@@ -190,15 +190,16 @@ export default function ProjectCarousel({ projects }: { projects: (Project & { i
               ref={(node) => {
                 cards.current[i] = node;
               }}
-              className="orbit-card card spot"
+              className="orbit-card"
               data-index={i}
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${n}: ${p.title}`}
             >
+              <span className="tape tape-top" aria-hidden />
               <div className="proj-visual" aria-hidden>
                 <ProjectArt name={p.title} />
               </div>
-              <p className="project-kind">{p.kind}</p>
+              <p className="project-kind hand">{p.kind}</p>
               <h3>
                 <a href={p.href} {...ext(p.href)} draggable={false}>
                   {p.title}

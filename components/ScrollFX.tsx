@@ -88,7 +88,7 @@ export default function ScrollFX() {
     };
     raf = requestAnimationFrame(frame);
 
-    // Scrapbook pieces drop onto the page once, when the section comes into view
+    // Scrapbook pieces drop onto the page once, each when it comes into view
     const io = new IntersectionObserver(
       (entries) =>
         entries.forEach((e) => {
@@ -97,9 +97,9 @@ export default function ScrollFX() {
             io.unobserve(e.target);
           }
         }),
-      { threshold: 0.18 }
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
     );
-    document.querySelectorAll(".scrapbook").forEach((el) => io.observe(el));
+    document.querySelectorAll(".scrap").forEach((el) => io.observe(el));
 
     // In-page links glide to an exact position just below the sticky nav
     const onClick = (e: MouseEvent) => {

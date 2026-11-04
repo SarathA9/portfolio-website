@@ -111,34 +111,48 @@ export function Projects() {
           note="Products I have built and shipped."
         />
       </div>
-      <ProjectCarousel projects={projects.map((p) => ({ ...p, id: `p-${slug(p.title)}` }))} />
+      <div className="wrap">
+        <div className="board board-projects">
+          <p className="hand board-hint">drag me, or let it spin</p>
+          <ProjectCarousel projects={projects.map((p) => ({ ...p, id: `p-${slug(p.title)}` }))} />
+        </div>
+      </div>
     </section>
   );
 }
 
 export function Experience() {
+  const papers = ["exp-lined", "exp-kraft", "exp-index"];
   return (
     <section id="experience" className="sec wrap" aria-labelledby="experience-title">
       <SectionHead id="experience" title="Experience" note="Most recent first." />
-      <ol className="timeline">
-        {experience.map((e) => (
-          <li key={e.company} id={`e-${slug(e.company)}`} className="depth">
-            <div className="tl-when">
-              <span>{e.period}</span>
-              <span>{e.location}</span>
-            </div>
-            <div className="tl-what">
-              <h3>{e.role}</h3>
-              <p className="tl-company">{e.company}</p>
-              <ul>
-                {e.points.map((pt) => (
-                  <li key={pt}>{pt}</li>
-                ))}
-              </ul>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <div className="board">
+        <ol className="exp-list">
+          {experience.map((e, i) => (
+            <li key={e.company} id={`e-${slug(e.company)}`} className="exp-item">
+              <div className="scrap exp-tag" style={{ ["--r" as string]: `${[-4, 3, -2][i % 3]}deg` }}>
+                <span className="exp-hole" aria-hidden />
+                <span className="hand exp-when">{e.period}</span>
+                <span className="exp-where">{e.location}</span>
+              </div>
+              <article
+                className={`scrap exp-card ${papers[i % papers.length]}`}
+                style={{ ["--r" as string]: `${[0.8, -1, 0.6][i % 3]}deg`, ["--d" as string]: "0.1s" }}
+              >
+                <span className="tape tape-top" aria-hidden />
+                {i === 0 && <span className="hand exp-now">now</span>}
+                <h3>{e.role}</h3>
+                <p className="exp-company">{e.company}</p>
+                <ul>
+                  {e.points.map((pt) => (
+                    <li key={pt}>{pt}</li>
+                  ))}
+                </ul>
+              </article>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }
@@ -147,7 +161,7 @@ export function About() {
   const notes = ["note-yellow", "note-pink", "note-blue", "note-green"];
   return (
     <section id="about" className="sec wrap" aria-labelledby="about-title">
-      <div className="scrapbook">
+      <div className="scrapbook board">
         <figure className="scrap polaroid" style={{ ["--r" as string]: "-5deg", ["--d" as string]: "0s" }}>
           <span className="tape tape-tl" aria-hidden />
           <span className="tape tape-tr" aria-hidden />

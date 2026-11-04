@@ -427,7 +427,7 @@ main {
   position: relative;
   border-radius: var(--radius);
   border: 1px solid var(--line-2);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.015));
+  background: linear-gradient(180deg, #12141a, #0d0f14);
   padding: clamp(18px, 3vw, 28px);
   box-shadow: 0 30px 80px -40px rgb(142 166 255 / 0.35);
 }
@@ -633,7 +633,7 @@ main {
   overflow: hidden;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0.012));
+  background: linear-gradient(180deg, #111318, #0c0e12);
   padding: clamp(22px, 2.6vw, 30px);
   transition: border-color 0.25s, transform 0.25s;
 }
@@ -1269,15 +1269,56 @@ main {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #13151c, #0d0f14);
-  border-color: var(--line-2);
+  padding: 30px 28px 24px;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgb(60 90 160 / 0.1) 31px 32px),
+    #f2ede3;
+  color: #22252c;
+  box-shadow: 0 30px 60px -28px rgb(0 0 0 / 0.9), 0 2px 4px rgb(0 0 0 / 0.35);
   backface-visibility: hidden;
   will-change: transform, opacity;
-  transition: border-color 0.25s;
+}
+.orbit-card:nth-child(3n + 2) {
+  background: #e8dcc6;
+}
+.orbit-card:nth-child(3n) {
+  background:
+    linear-gradient(180deg, transparent 0 0),
+    #fbfaf6;
+}
+.orbit-card .tape-top {
+  top: -12px;
+}
+.orbit-card .proj-visual {
+  margin: 0 0 16px;
+  border: 0;
+  border-radius: 2px;
+  background: #0d0f14;
+  box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.6);
+  transform: rotate(-1.2deg);
+  outline: 6px solid #fff;
+}
+.orbit-card:nth-child(even) .proj-visual {
+  transform: rotate(1deg);
+}
+.orbit-card .card-text {
+  margin-top: 10px;
+  color: #444955;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.orbit-card .tags li {
+  color: #3c404a;
+  border-color: rgb(30 34 44 / 0.25);
+  background: rgb(255 255 255 / 0.45);
 }
 .orbit-card h3 {
-  margin-top: 6px;
-  font-size: 28px;
+  margin-top: 2px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #15171c;
 }
 .orbit-card h3 a::after {
   content: "";
@@ -1289,17 +1330,22 @@ main {
   padding-top: 20px;
 }
 .project-kind {
-  font-size: 16px;
-  color: var(--accent);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: #3b4fb8;
 }
 .project-link {
-  margin-top: 18px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--muted);
+  margin-top: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #22252c;
+  text-decoration: underline;
+  text-decoration-color: rgb(59 79 184 / 0.5);
+  text-underline-offset: 4px;
 }
 .orbit-card:hover .project-link {
-  color: var(--text);
+  color: #3b4fb8;
 }
 .orbit-nav {
   display: flex;
@@ -1491,11 +1537,14 @@ html.lenis body {
     "notes side";
   gap: 28px 56px;
   align-items: start;
+}
+.board {
+  position: relative;
   padding: clamp(28px, 5vw, 64px);
   border-radius: 24px;
   border: 1px solid var(--line);
   background:
-    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.06) 1px, transparent 0) 0 0 / 22px 22px,
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 0) 0 0 / 22px 22px,
     linear-gradient(180deg, #111319, #0c0e13);
 }
 .scrap {
@@ -1513,11 +1562,11 @@ html.lenis body {
 }
 
 /* pieces drop onto the page when the section scrolls into view */
-.fx .scrapbook .scrap {
+.fx .scrap {
   opacity: 0;
   transform: translateY(-46px) rotate(calc(var(--r) * -3 + 6deg)) scale(1.08);
 }
-.fx .scrapbook.in .scrap {
+.fx .scrap.in {
   opacity: 1;
   transform: rotate(var(--r));
   transition:
@@ -1525,7 +1574,7 @@ html.lenis body {
     opacity 0.5s ease-out var(--d),
     box-shadow 0.35s;
 }
-.fx .scrapbook.in .scrap:hover {
+.fx .scrap.in:hover {
   transform: rotate(calc(var(--r) * 0.3)) translateY(-4px) scale(1.015);
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s;
 }
@@ -1768,7 +1817,6 @@ html.lenis body {
     grid-template-columns: 1fr;
     grid-template-areas: "photo" "stamp" "paper" "notes" "side";
     gap: 36px;
-    padding: 28px 20px 36px;
   }
   .polaroid {
     max-width: 320px;
@@ -1785,5 +1833,218 @@ html.lenis body {
 @media (max-width: 480px) {
   .focus-notes {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Projects board */
+.board-projects {
+  padding: clamp(18px, 3vw, 36px) 0 clamp(22px, 3vw, 36px);
+  overflow: hidden;
+}
+.board-hint {
+  position: absolute;
+  top: 14px;
+  right: clamp(18px, 3vw, 40px);
+  z-index: 2;
+  font-size: 24px;
+  color: #c9cdd8;
+  transform: rotate(-3deg);
+}
+.board-projects .orbit-stage {
+  height: 600px;
+}
+.board-projects .orbit-ring {
+  top: 56px;
+}
+
+/* ------------------------------------------------------------------
+   Experience: scrapbook timeline on a string
+------------------------------------------------------------------- */
+.exp-list {
+  position: relative;
+  display: grid;
+  gap: 44px;
+}
+.exp-list::before {
+  /* the string the tags hang from */
+  content: "";
+  position: absolute;
+  left: 94px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(180deg, #c9b38a 0 10px, #a8936c 10px 14px);
+  opacity: 0.7;
+}
+.exp-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.exp-tag {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  margin-top: 26px;
+  padding: 14px 16px 14px 30px;
+  background: #e9dcc0;
+  color: #2b2d33;
+  border-radius: 4px 4px 4px 4px;
+  /* luggage-tag point on the left */
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 16px 100%, 0 50%);
+}
+.exp-hole {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: #0d0f14;
+  box-shadow: inset 0 0 0 2px #b9a57d;
+}
+.exp-when {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1;
+  color: #3b4fb8;
+}
+.exp-where {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555a66;
+}
+.exp-card {
+  padding: clamp(24px, 3vw, 34px);
+  border-radius: 3px;
+  color: #22252c;
+  max-width: 780px;
+}
+.exp-lined {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgb(60 90 160 / 0.12) 31px 32px),
+    #f1ece2;
+}
+.exp-kraft {
+  background: #e3d2b2;
+}
+.exp-index {
+  background:
+    linear-gradient(180deg, transparent 0 74px, rgb(200 60 60 / 0.3) 74px 75px, transparent 75px),
+    #fbfaf6;
+}
+.exp-card .tape-top {
+  left: 36px;
+  margin-left: 0;
+}
+.exp-kraft .tape-top {
+  background: rgb(142 166 255 / 0.5);
+}
+.exp-card h3 {
+  font-size: clamp(24px, 2.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #15171c;
+}
+.exp-company {
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3b4fb8;
+}
+.exp-card ul {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+}
+.exp-card ul li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 17.5px;
+  line-height: 1.5;
+  color: #3a3e48;
+}
+.exp-card ul li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #3b4fb8;
+  opacity: 0.7;
+}
+.exp-now {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  padding: 2px 14px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #b8452f;
+  border: 2px solid #b8452f;
+  border-radius: 999px;
+  transform: rotate(6deg);
+}
+
+@media (max-width: 760px) {
+  .board {
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
+  .board-projects {
+    padding: 14px 0 20px;
+  }
+  .board-hint {
+    position: static;
+    padding: 0 18px;
+    font-size: 21px;
+    transform: rotate(-2deg);
+  }
+  .board-projects .orbit-stage {
+    height: 590px;
+  }
+  .board-projects .orbit-ring {
+    top: 24px;
+    height: 540px;
+  }
+  .orbit-card {
+    padding: 26px 20px 20px;
+  }
+  .orbit-card h3 {
+    font-size: 26px;
+  }
+  .orbit-card .card-text {
+    font-size: 16.5px;
+  }
+  .exp-list::before {
+    left: 26px;
+  }
+  .exp-list {
+    gap: 36px;
+  }
+  .exp-item {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .exp-tag {
+    justify-self: start;
+    margin: 0 0 -6px 8px;
+    z-index: 2;
+  }
+  .exp-card {
+    margin-left: 10px;
+  }
+  .exp-now {
+    top: 10px;
+    right: 12px;
+    font-size: 21px;
+  }
+  .scrapbook {
+    gap: 32px;
   }
 }

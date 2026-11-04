@@ -108,7 +108,10 @@ export const research: Research[] = [
       "Tested against an adaptive attacker: shows the method's limits and that it complements filtering at indexing time",
     ],
     tags: ["Python", "PyTorch", "LLaMA-3", "QLoRA", "FAISS", "Sentence-Transformers", "scikit-learn"],
-    links: [{ label: "GitHub", href: "https://github.com/SarathA9" }],
+    links: [
+      { label: "Read the report", href: "/RFC_RAG_Backdoor_Detection_Report.pdf" },
+      { label: "GitHub", href: "https://github.com/SarathA9" },
+    ],
   },
   {
     title: "Autonomous Maze Navigation with the Husarion RosBot",
@@ -150,7 +153,7 @@ export const research: Research[] = [
       "All results cross-validated, with no data leakage",
     ],
     tags: ["Python", "scikit-learn", "XGBoost", "NumPy", "pandas"],
-    links: [],
+    links: [{ label: "Read the report", href: "/ML_Challenge_Report.pdf" }],
   },
   {
     title: "ECG Signal Processing for Anaesthesia Monitoring",
