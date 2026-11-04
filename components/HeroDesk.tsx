@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Hero 3D scene: a developer (blue cap, long dark hair, grey knit sweater)
+ * Hero 3D scene: Sarath (denim cap, long dark hair, navy tee, light wide-leg jeans)
  * coding at his desk. Built entirely from primitives in Three.js:
  *  - the monitor shows real code being typed, with syntax colours and a cursor
  *  - hands type and keyboard keys press down; every few seconds he pauses to think
@@ -189,12 +189,15 @@ export default function HeroDesk() {
         key: mat("#3c4150", { roughness: 0.55 }),
         chair: mat("#2c3140", { roughness: 0.6 }),
         seat: mat("#3a4257", { roughness: 0.9, sheen: 1, sheenColor: new THREE.Color("#6a7590") }),
-        skin: mat("#c98a63", { roughness: 0.55, sheen: 0.3, sheenColor: new THREE.Color("#ffb38a") }),
-        sweater: mat("#4c535f", { roughness: 0.95, sheen: 1, sheenRoughness: 0.6, sheenColor: new THREE.Color("#9aa3b6") }),
-        pants: mat("#20232b", { roughness: 0.85 }),
-        shoe: mat("#ebe7df", { roughness: 0.6 }),
-        sole: mat("#9a948a", { roughness: 0.8 }),
-        cap: mat("#4f7bb3", { roughness: 0.85, sheen: 0.6, sheenColor: new THREE.Color("#a9c6ef") }),
+        skin: mat("#a8694a", { roughness: 0.5, sheen: 0.35, sheenColor: new THREE.Color("#ffb08a") }),
+        sweater: mat("#16295a", { roughness: 0.95, sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color("#3f5aa0") }),
+        pants: mat("#5f8fc2", { roughness: 0.95, sheen: 0.25, sheenColor: new THREE.Color("#a9c8ea") }),
+        shoe: mat("#1a1b20", { roughness: 0.55 }),
+        sole: mat("#2c2d33", { roughness: 0.8 }),
+        cap: mat("#41709f", { roughness: 0.95, sheen: 0.4, sheenColor: new THREE.Color("#8fb3da") }),
+        watch: mat("#141519", { roughness: 0.35, metalness: 0.4 }),
+        bead: mat("#cfc8bb", { roughness: 0.35, clearcoat: 0.6 }),
+        brow: mat("#16110e", { roughness: 0.8 }),
         hair: mat("#17120f", { roughness: 0.45, clearcoat: 0.3 }),
         eye: mat("#111317", { roughness: 0.2, clearcoat: 1 }),
         mug: mat("#ece7de", { roughness: 0.3, clearcoat: 0.6 }),
@@ -424,12 +427,12 @@ export default function HeroDesk() {
       const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.24, 8, 20), M.sweater);
       torso.position.set(0, 0.22, -0.04);
       torso.rotation.x = -0.22;
-      torso.scale.set(1.05, 1, 0.78);
+      torso.scale.set(1.12, 1, 0.8);
       torso.castShadow = true;
       disposables.push(torso.geometry);
       torsoGroup.add(torso);
-      // knit collar
-      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.025, 10, 24), M.sweater);
+      // crew-neck rib of the tee
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.012, 10, 24), M.sweater);
       collar.position.set(0, 0.46, -0.12);
       collar.rotation.x = Math.PI / 2 - 0.25;
       collar.castShadow = true;
@@ -462,21 +465,41 @@ export default function HeroDesk() {
         disposables.push(eye.geometry);
         head.add(eye);
       }
+      for (const sx of [-1, 1]) {
+        const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.005, 0.022, 4, 8), M.brow);
+        brow.position.set(sx * 0.036, 0.034, -0.096);
+        brow.rotation.z = Math.PI / 2 + sx * 0.12;
+        disposables.push(brow.geometry);
+        head.add(brow);
+      }
+      const smile = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.0035, 6, 16, Math.PI * 0.7), M.brow);
+      smile.position.set(0, -0.035, -0.098);
+      smile.rotation.z = Math.PI + Math.PI * 0.15;
+      disposables.push(smile.geometry);
+      head.add(smile);
       const nose = new THREE.Mesh(new THREE.SphereGeometry(0.016, 12, 10), M.skin);
       nose.position.set(0, -0.015, -0.104);
       disposables.push(nose.geometry);
       head.add(nose);
       // hair: back of head + long hair falling to the shoulders
       // hair showing under the cap at the back and sides
-      const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.108, 28, 16, Math.PI / 2 - 1.35, 2.7, Math.PI * 0.4, Math.PI * 0.32), M.hair);
+      const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.108, 28, 16, Math.PI / 2 - 0.95, 1.9, Math.PI * 0.4, Math.PI * 0.32), M.hair);
       hairBack.position.set(0, -0.005, 0.014);
       hairBack.scale.set(1.02, 1, 1.04);
       disposables.push(hairBack.geometry);
       head.add(hairBack);
-      const hairLong = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.13, 6, 16), M.hair);
-      hairLong.position.set(0, -0.1, 0.085);
-      hairLong.rotation.x = 0.3;
-      hairLong.scale.set(1.2, 1, 0.55);
+      const hairLong = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.12, 6, 16), M.hair);
+      hairLong.position.set(0, -0.085, 0.075);
+      hairLong.rotation.x = 0.28;
+      hairLong.scale.set(1.3, 1, 0.6);
+      for (const sx of [-1, 1]) {
+        // hair tucked behind the ears
+        const side = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.06, 4, 10), M.hair);
+        side.position.set(sx * 0.082, -0.04, 0.062);
+        side.rotation.x = 0.25;
+        disposables.push(side.geometry);
+        head.add(side);
+      }
       hairLong.castShadow = true;
       disposables.push(hairLong.geometry);
       head.add(hairLong);
@@ -503,8 +526,18 @@ export default function HeroDesk() {
       const shoulder = [new THREE.Vector3(-0.17, 1.0, 0.56), new THREE.Vector3(0.17, 1.0, 0.56)];
       const elbow = [new THREE.Vector3(-0.23, 0.82, 0.4), new THREE.Vector3(0.23, 0.82, 0.4)];
       const handBase = [new THREE.Vector3(-0.09, 0.815, 0.13), new THREE.Vector3(0.09, 0.815, 0.13)];
-      const upperArm = [limb(M.sweater, 0.048), limb(M.sweater, 0.048)];
-      const foreArm = [limb(M.sweater, 0.042), limb(M.sweater, 0.042)];
+      const upperArm = [limb(M.skin, 0.042), limb(M.skin, 0.042)];
+      const sleeves = [limb(M.sweater, 0.062), limb(M.sweater, 0.062)];
+      const foreArm = [limb(M.skin, 0.036), limb(M.skin, 0.036)];
+      // black watch on his left wrist, bead bracelet on his right
+      const watch = new THREE.Mesh(new THREE.CylinderGeometry(0.041, 0.041, 0.022, 20), M.watch);
+      const watchFace = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.01, 20), M.watch);
+      const bracelet = new THREE.Mesh(new THREE.TorusGeometry(0.037, 0.0045, 8, 24), M.bead);
+      [watch, watchFace, bracelet].forEach((m) => {
+        m.castShadow = true;
+        disposables.push(m.geometry);
+        guy.add(m);
+      });
       const hands = [0, 1].map(() => {
         const h = new THREE.Mesh(new THREE.SphereGeometry(0.036, 16, 12), M.skin);
         h.scale.set(1, 0.6, 1.25);
@@ -512,9 +545,9 @@ export default function HeroDesk() {
         disposables.push(h.geometry);
         return h;
       });
-      const elbowBalls = [joint(M.sweater, 0.046), joint(M.sweater, 0.046)];
-      const wrists = [joint(M.sweater, 0.043), joint(M.sweater, 0.043)];
-      [...upperArm, ...foreArm, ...hands, ...elbowBalls, ...wrists].forEach((m) => guy.add(m));
+      const elbowBalls = [joint(M.skin, 0.04), joint(M.skin, 0.04)];
+      const wrists = [joint(M.skin, 0.034), joint(M.skin, 0.034)];
+      [...upperArm, ...sleeves, ...foreArm, ...hands, ...elbowBalls, ...wrists].forEach((m) => guy.add(m));
       const shoulderBalls = [0, 1].map((i) => {
         const s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), M.sweater);
         s.position.copy(shoulder[i]);
@@ -528,15 +561,21 @@ export default function HeroDesk() {
       for (const sx of [-1, 1]) {
         const hip = new THREE.Vector3(sx * 0.09, 0.56, 0.66);
         const knee = new THREE.Vector3(sx * 0.1, 0.56, 0.32);
-        const ankle = new THREE.Vector3(sx * 0.11, 0.09, 0.34);
-        const thigh = limb(M.pants, 0.068);
+        const ankle = new THREE.Vector3(sx * 0.11, 0.12, 0.34);
+        const thigh = limb(M.pants, 0.074);
         setLimb(thigh, hip, knee);
-        const shin = limb(M.pants, 0.055);
+        const shin = limb(M.pants, 0.072); // wide-leg jeans
         setLimb(shin, knee, ankle);
         guy.add(thigh, shin);
-        const kneeBall = joint(M.pants, 0.062);
+        const kneeBall = joint(M.pants, 0.074);
         kneeBall.position.copy(knee);
-        const hipBall = joint(M.pants, 0.07);
+        const hipBall = joint(M.pants, 0.076);
+        // flared hem over the shoe
+        const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.088, 0.06, 18), M.pants);
+        hem.position.set(ankle.x, 0.1, ankle.z);
+        hem.castShadow = true;
+        disposables.push(hem.geometry);
+        guy.add(hem);
         hipBall.position.copy(hip);
         guy.add(kneeBall, hipBall);
         const shoe = box(0.1, 0.07, 0.2, 0.03, M.shoe);
@@ -731,10 +770,24 @@ export default function HeroDesk() {
           shoulderBalls[i].position.copy(sh);
           const el2 = elbow[i].clone();
           el2.z += lean * 0.5;
-          setLimb(upperArm[i], sh.clone(), el2);
+          const shP = sh.clone();
+          setLimb(upperArm[i], shP, el2);
+          // short sleeve covers the top half of the upper arm
+          setLimb(sleeves[i], shP, shP.clone().lerp(el2, 0.5));
           setLimb(foreArm[i], el2, handPos[i]);
           elbowBalls[i].position.copy(el2);
           wrists[i].position.lerpVectors(el2, handPos[i], 0.86);
+          const wristAt = new THREE.Vector3().lerpVectors(el2, handPos[i], 0.8);
+          const dir = new THREE.Vector3().subVectors(handPos[i], el2).normalize();
+          const band = i === 0 ? watch : bracelet;
+          band.position.copy(wristAt);
+          if (i === 0) {
+            band.quaternion.setFromUnitVectors(up, dir);
+            watchFace.position.copy(wristAt).add(new THREE.Vector3(0, 0.036, 0));
+            watchFace.quaternion.identity();
+          } else {
+            band.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+          }
           hands[i].position.copy(handPos[i]);
           hands[i].position.y += 0.006;
         }
