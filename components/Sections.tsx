@@ -1,6 +1,6 @@
 import { about, profile, research, projects, experience, skills, education } from "@/lib/data";
 import { slug } from "@/lib/slug";
-import ProjectCarousel from "./ProjectCarousel";
+import ProjectStrip from "./ProjectStrip";
 
 function SectionHead({ id, title, note }: { id: string; title: string; note?: string }) {
   return (
@@ -108,13 +108,12 @@ export function Projects() {
         <SectionHead
           id="projects"
           title="Projects"
-          note="Products I have built and shipped."
+          note="Products I have built and shipped. Scroll the strip sideways to see them all."
         />
       </div>
       <div className="wrap">
         <div className="board board-projects">
-          <p className="hand board-hint">drag me, or let it spin</p>
-          <ProjectCarousel projects={projects.map((p) => ({ ...p, id: `p-${slug(p.title)}` }))} />
+          <ProjectStrip projects={projects.map((p) => ({ ...p, id: `p-${slug(p.title)}` }))} />
         </div>
       </div>
     </section>

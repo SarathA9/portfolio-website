@@ -49,7 +49,7 @@ components/
   Hero.tsx
   SceneBackground.tsx # fixed 3D network that morphs shape as you scroll (Three.js, loaded lazily)
   ScrollFX.tsx      # smooth scrolling (Lenis) + eased scroll effects: hero sink-back, cards tilting in
-  ProjectCarousel.tsx # coverflow projects loop: turns on its own, drag, arrows, pause on hover
+  ProjectStrip.tsx  # horizontal scrapbook strip of projects: sideways scroll, drag, endless drift
   Spotlight.tsx     # soft light under the pointer on cards
   ProjectArt.tsx    # line illustrations on the project cards
   AskPortfolio.tsx  # the search box (client component)
