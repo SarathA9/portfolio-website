@@ -1,5 +1,6 @@
 import { profile } from "@/lib/data";
 import AskPortfolio from "./AskPortfolio";
+import HeroDesk from "./HeroDesk";
 
 const facts = [
   { label: "Studying", value: "M.Sc. Artificial Intelligence, OTH Amberg-Weiden" },
@@ -13,6 +14,7 @@ export default function Hero() {
     <>
       <header className="hero" id="top">
         <div className="hero-glow" aria-hidden />
+        <HeroDesk />
         <div className="wrap hero-inner">
           <div className="hero-badge">
             {/* eslint-disable-next-line @next/next/no-img-element */}

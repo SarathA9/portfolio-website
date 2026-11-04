@@ -47,7 +47,8 @@ app/
 components/
   Navbar.tsx
   Hero.tsx
-  SceneBackground.tsx # fixed 3D network that morphs shape as you scroll (Three.js, loaded lazily)
+  HeroDesk.tsx      # hero 3D scene: a developer coding at his desk (Three.js, loaded lazily)
+  SceneBackground.tsx # faint 3D network behind the sections that morphs shape as you scroll
   ScrollFX.tsx      # smooth scrolling (Lenis) + eased scroll effects: hero sink-back, cards tilting in
   ProjectStrip.tsx  # horizontal scrapbook strip of projects: sideways scroll, drag, endless drift
   Spotlight.tsx     # soft light under the pointer on cards
