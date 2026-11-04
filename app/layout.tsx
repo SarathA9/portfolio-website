@@ -119,7 +119,7 @@ export default function RootLayout({
           // decide before first paint whether to show the loader (once per session)
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(!sessionStorage.getItem('sa-loaded')){var d=document.documentElement;d.classList.add('is-loading');setTimeout(function(){d.classList.remove('is-loading','is-revealing')},7000)}}catch(e){}",
+              "try{if(!sessionStorage.getItem('sa-loaded')){var d=document.documentElement;d.classList.add('is-loading');window.__saSafety=setTimeout(function(){d.classList.remove('is-loading','is-revealing')},9000)}}catch(e){}",
           }}
         />
       </head>

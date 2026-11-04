@@ -4,135 +4,201 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * Loading sequence, shown once per browser session.
- * The logo's three nodes assemble, its links draw, and a signal runs around them;
- * the name rises in; a progress bar follows real loading (fonts → page → 3D scene);
- * then the curtain sweeps up and the hero animates in underneath.
- * The inline script in layout.tsx adds `html.is-loading` before first paint,
- * so returning visitors (and visitors without JS) never see a flash.
+ *  1. The logo assembles: nodes pop in, links grow, a signal circles the triangle
+ *  2. "Sarath / Adukkadukkam" flips up letter by letter, in the hero's own typeface
+ *  3. A progress bar follows real loading (fonts → page → first frame of the 3D desk)
+ *  4. Hand-off: the name flies into the exact place of the hero title while the
+ *     curtain lifts, so the loader's title becomes the page's title.
+ * Every animation uses only transform and opacity, so it stays on the GPU and
+ * remains smooth while the page is busy. The 3D scenes wait for `sa:loaded`.
  */
 
-const NAME = "Sarath Adukkadukkam";
+const LINES = ["Sarath", "Adukkadukkam"];
 const STATUS = [
   { at: 0, text: "Initialising" },
-  { at: 22, text: "Loading weights" },
-  { at: 48, text: "Warming up the network" },
-  { at: 74, text: "Rendering the desk" },
+  { at: 30, text: "Loading weights" },
+  { at: 60, text: "Warming up the network" },
+  { at: 85, text: "Rendering the desk" },
   { at: 100, text: "Ready" },
 ];
-const MIN_MS = 1700;
-const MAX_MS = 3600;
+const MIN_MS = 1900; // long enough for the intro to play in full
+const MAX_MS = 3800; // never keep a visitor waiting longer than this
+
+// logo geometry (in a 96 × 96 box)
+const N = [
+  [48, 14],
+  [18, 74],
+  [78, 74],
+];
+const EDGES = [
+  [0, 1],
+  [1, 2],
+  [2, 0],
+].map(([a, b]) => {
+  const [x1, y1] = N[a];
+  const [x2, y2] = N[b];
+  return { x: x1, y: y1, len: Math.hypot(x2 - x1, y2 - y1), deg: (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI };
+});
 
 export default function Preloader() {
   const [active, setActive] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const target = useRef(8);
+  const box = useRef<HTMLDivElement>(null);
+  const name = useRef<HTMLParagraphElement>(null);
+  const bar = useRef<HTMLSpanElement>(null);
   const pctEl = useRef<HTMLSpanElement>(null);
-  const barEl = useRef<HTMLSpanElement>(null);
   const statusEl = useRef<HTMLSpanElement>(null);
-  const boxEl = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (!root.classList.contains("is-loading")) return;
+    if (!root.classList.contains("is-loading")) {
+      window.dispatchEvent(new Event("sa:loaded"));
+      return;
+    }
     setActive(true);
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
+    const root = document.documentElement;
+    // the loader is running, so the pre-paint safety net is no longer needed
+    clearTimeout((window as unknown as { __saSafety?: number }).__saSafety);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const start = performance.now();
-    let shown = 0;
+    let target = 12;
+    let shownTarget = -1;
+    let num = 0;
+    let lastNum = -1;
     let done = false;
     let raf = 0;
+    const timers: number[] = [];
 
-    const bump = (to: number) => (target.current = Math.max(target.current, to));
-    bump(18);
-    document.fonts?.ready.then(() => bump(45));
-    if (document.readyState === "complete") bump(72);
-    else window.addEventListener("load", () => bump(72), { once: true });
-
-    // the 3D desk marks itself ready once its first frame has rendered
-    const desk = () => document.querySelector<HTMLElement>(".desk-stage");
-    const deskReady = () => desk()?.dataset.ready === "true" || !desk();
+    const bump = (to: number) => (target = Math.max(target, to));
+    document.fonts?.ready.then(() => bump(40));
+    if (document.readyState === "complete") bump(70);
+    else window.addEventListener("load", () => bump(70), { once: true });
+    const deskReady = () => {
+      const d = document.querySelector<HTMLElement>(".desk-stage");
+      return !d || d.dataset.ready === "true";
+    };
 
     const finish = () => {
       if (done) return;
       done = true;
-      setLeaving(true);
-      root.classList.add("is-revealing");
-      window.setTimeout(() => {
-        root.classList.remove("is-loading", "is-revealing");
-        try {
-          sessionStorage.setItem("sa-loaded", "1");
-        } catch {}
-        setActive(false);
-      }, reduced ? 350 : 1050);
+      cancelAnimationFrame(raf);
+      const el = box.current!;
+      const from = name.current!;
+      const to = document.querySelector<HTMLElement>(".hero-name");
+
+      // swap the per-letter intro for plain text, so kerning matches the hero title exactly
+      from.classList.add("ln-flat");
+      // FLIP: fly the loader title onto the hero title
+      if (to && !reduced) {
+        const a = from.getBoundingClientRect();
+        const b = to.getBoundingClientRect();
+        const scale = b.height / a.height;
+        from.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${scale})`;
+      }
+      el.classList.add("loader-out");
+      root.classList.add("is-revealing", "loader-done");
+
+      timers.push(
+        window.setTimeout(() => {
+          root.classList.remove("is-loading", "is-revealing");
+          try {
+            sessionStorage.setItem("sa-loaded", "1");
+          } catch {}
+          setActive(false);
+          window.dispatchEvent(new Event("sa:loaded"));
+        }, reduced ? 380 : 1150)
+      );
     };
 
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const elapsed = now - start;
-      if (deskReady() && target.current >= 72) bump(100);
+      if (target >= 70 && deskReady()) bump(100);
       if (elapsed > MAX_MS) bump(100);
-      // ease toward the target, but never faster than the minimum duration allows
-      const cap = Math.min(100, (elapsed / MIN_MS) * 100);
-      const goal = Math.min(target.current, cap);
-      shown += (goal - shown) * 0.08;
-      if (goal - shown < 0.4) shown = goal;
-      // update the DOM directly: no React re-render per frame while the page hydrates
-      const p = Math.floor(shown);
-      if (pctEl.current) pctEl.current.textContent = `${String(p).padStart(3, "\u2007")}%`;
-      if (barEl.current) barEl.current.style.transform = `scaleX(${p / 100})`;
-      if (statusEl.current) statusEl.current.textContent = [...STATUS].reverse().find((x) => p >= x.at)!.text;
-      boxEl.current?.setAttribute("aria-label", `Loading, ${p}%`);
-      if (shown >= 100 && elapsed >= MIN_MS) {
+      // the bar itself glides with a CSS transition (on the GPU); we only change its target
+      const allowed = Math.min(target, 18 + (elapsed / MIN_MS) * 82);
+      const step = allowed >= 100 ? 100 : Math.floor(allowed / 6) * 6;
+      if (step !== shownTarget) {
+        shownTarget = step;
+        if (bar.current) bar.current.style.transform = `scaleX(${step / 100})`;
+        const s = [...STATUS].reverse().find((x) => step >= x.at)!.text;
+        if (statusEl.current && statusEl.current.textContent !== s) statusEl.current.textContent = s;
+      }
+      // the number counts smoothly toward the bar
+      num += (shownTarget - num) * 0.12;
+      const n = shownTarget >= 100 && 100 - num < 0.6 ? 100 : Math.floor(num);
+      if (n !== lastNum) {
+        lastNum = n;
+        if (pctEl.current) pctEl.current.textContent = `${n}%`;
+      }
+      if (n >= 100 && elapsed >= MIN_MS) {
         cancelAnimationFrame(raf);
-        window.setTimeout(finish, 260);
+        timers.push(window.setTimeout(finish, 280));
       }
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
+    };
+  }, [active]);
 
   if (!active) return null;
 
+  let i = 0;
   return (
-    <div ref={boxEl} className={`loader${leaving ? " loader-out" : ""}`} role="status" aria-label="Loading">
+    <div ref={box} className="loader" role="status" aria-label="Loading">
+      <div className="curtain" aria-hidden />
       <div className="loader-center">
-        <svg className="loader-mark" viewBox="0 0 120 120" width="112" height="112" aria-hidden>
-          <defs>
-            <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#8ea6ff" />
-              <stop offset="1" stopColor="#b69cff" />
-            </linearGradient>
-            <filter id="lglow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" />
-            </filter>
-          </defs>
-          <path className="lm-edge" d="M60 26 L30 86 L90 86 Z" pathLength={300} />
-          <path className="lm-edge lm-edge-glow" d="M60 26 L30 86 L90 86 Z" pathLength={300} filter="url(#lglow)" />
-          <circle className="lm-node lm-n1" cx="60" cy="26" r="9" />
-          <circle className="lm-node lm-n2" cx="30" cy="86" r="9" />
-          <circle className="lm-node lm-n3" cx="90" cy="86" r="9" />
-          <circle className="lm-signal" r="3.6">
-            <animateMotion dur="1.4s" repeatCount="indefinite" begin="0.9s" path="M60 26 L90 86 L30 86 Z" />
-          </circle>
-        </svg>
+        <div className="lmark" aria-hidden>
+          {EDGES.map((e, k) => (
+            <span
+              key={k}
+              className="lm-edge"
+              style={{
+                left: e.x,
+                top: e.y,
+                width: e.len,
+                ["--deg" as string]: `${e.deg}deg`,
+                animationDelay: `${0.32 + k * 0.16}s`,
+              }}
+            />
+          ))}
+          {N.map(([x, y], k) => (
+            <span key={k} className={`lm-node lm-n${k + 1}`} style={{ left: x, top: y, animationDelay: `${0.06 + k * 0.12}s, ${1.3 + k * 0.25}s` }} />
+          ))}
+          <span className="lm-signal" />
+        </div>
 
-        <p className="loader-name" aria-hidden>
-          {NAME.split("").map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${0.55 + i * 0.028}s` }}>
-              {ch === " " ? " " : ch}
+        <p ref={name} className="loader-name" aria-hidden>
+          {LINES.map((line) => (
+            <span key={line} className="ln-line">
+              <span className="ln-plain">{line}</span>
+              {line.split("").map((ch) => {
+                const d = 0.5 + i++ * 0.035;
+                return (
+                  <span key={i} className="ln-char" style={{ animationDelay: `${d}s` }}>
+                    {ch}
+                  </span>
+                );
+              })}
             </span>
           ))}
         </p>
 
-        <div className="loader-meta">
-          <span className="loader-status" ref={statusEl}>
-            {STATUS[0].text}
-          </span>
-          <span className="loader-pct" ref={pctEl}>
-            0%
-          </span>
-        </div>
-        <div className="loader-bar" aria-hidden>
-          <span ref={barEl} style={{ transform: "scaleX(0)" }} />
+        <div className="loader-foot">
+          <div className="loader-meta">
+            <span ref={statusEl}>{STATUS[0].text}</span>
+            <span ref={pctEl} className="loader-pct">
+              0%
+            </span>
+          </div>
+          <div className="loader-bar">
+            <span ref={bar} />
+          </div>
         </div>
       </div>
     </div>
