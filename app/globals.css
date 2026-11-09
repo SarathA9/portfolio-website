@@ -16,7 +16,7 @@
   --mark: rgb(142 166 255 / 0.22);
 
   --font: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
-  --font-name: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-name: "Instrument Serif", ui-serif, Georgia, serif;
   --wrap: 1200px;
   --gutter: clamp(20px, 4vw, 40px);
   --radius: 18px;
@@ -330,11 +330,11 @@ main {
 
 .hero-name {
   font-family: var(--font-name);
-  margin-top: 28px;
-  font-size: clamp(44px, 6.4vw, 84px);
-  line-height: 1.02;
-  font-weight: 600;
-  letter-spacing: -0.045em;
+  margin-top: 24px;
+  font-size: clamp(58px, 8.2vw, 116px);
+  line-height: 0.98;
+  font-weight: 400;
+  letter-spacing: -0.015em;
   background: linear-gradient(180deg, #ffffff 30%, #a9b2c8 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -2377,10 +2377,10 @@ html.is-revealing .hero-inner > * {
 /* name: same typeface and treatment as the hero title */
 .loader-name {
   font-family: var(--font-name);
-  font-size: clamp(40px, 7vw, 64px);
-  line-height: 1.02;
-  font-weight: 600;
-  letter-spacing: -0.045em;
+  font-size: clamp(52px, 9vw, 88px);
+  line-height: 0.98;
+  font-weight: 400;
+  letter-spacing: -0.015em;
   text-align: left;
   transform-origin: 0 0;
   will-change: transform;
@@ -2390,6 +2390,10 @@ html.is-revealing .hero-inner > * {
   position: relative;
   display: block;
   white-space: nowrap;
+}
+.ln-line + .ln-line {
+  font-style: italic;
+  padding-left: 0.04em;
 }
 .ln-plain {
   position: absolute;
@@ -2419,10 +2423,8 @@ html.is-revealing .hero-inner > * {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transform-origin: 50% 100%;
-  transform: translateY(0.45em) rotateX(-80deg);
   opacity: 0;
-  animation: char-in 0.9s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+  animation: char-in 0.7s steps(1, end) forwards;
 }
 .ln-line + .ln-line .ln-char {
   background: linear-gradient(180deg, #e6e9f2 0%, #a9b2c8 100%);
@@ -2430,7 +2432,13 @@ html.is-revealing .hero-inner > * {
   background-clip: text;
 }
 @keyframes char-in {
-  to { transform: none; opacity: 1; }
+  0% { opacity: 0; }
+  12% { opacity: 0.8; transform: translate(-4px, 0) skewX(-18deg); }
+  22% { opacity: 0; }
+  34% { opacity: 1; transform: translate(3px, -1px); filter: drop-shadow(-3px 0 0 #6fd6ff) drop-shadow(3px 0 0 #b69cff); }
+  46% { opacity: 0.3; transform: translate(-1px, 0); }
+  60% { opacity: 1; transform: none; filter: drop-shadow(2px 0 0 #b69cff); }
+  100% { opacity: 1; transform: none; filter: none; }
 }
 .loader-out .loader-name {
   transition: transform 1.05s cubic-bezier(0.7, 0, 0.2, 1);
@@ -2488,4 +2496,107 @@ html.is-revealing .hero-inner > * {
   .lm-edge { transform: rotate(var(--deg)); }
   .lm-node, .ln-char { transform: none; opacity: 1; }
   .loader-foot, .lm-signal { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------
+   Hero name: Instrument Serif with a glitch fade-in
+------------------------------------------------------------------- */
+.instrument-serif-regular {
+  font-family: "Instrument Serif", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+.instrument-serif-regular-italic {
+  font-family: "Instrument Serif", serif;
+  font-weight: 400;
+  font-style: italic;
+}
+.hn-line {
+  position: relative;
+  display: block;
+  white-space: nowrap;
+}
+.hn-line + .hn-line {
+  /* the italic line sits slightly in, like a typeset title */
+  padding-left: 0.04em;
+}
+/* two colour-split copies that only show during the glitch */
+.hn-line::before,
+.hn-line::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  padding-left: inherit;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  pointer-events: none;
+  opacity: 0;
+}
+.hn-line::before {
+  color: #6fd6ff;
+  mix-blend-mode: screen;
+}
+.hn-line::after {
+  color: #c49bff;
+  mix-blend-mode: screen;
+}
+
+.hero-inner > .hero-name {
+  animation: hn-in 1.15s steps(1, end) 0.1s both;
+}
+.hero-inner > .hero-name .hn-line::before {
+  animation: hn-split-a 1.15s steps(1, end) 0.1s both;
+}
+.hero-inner > .hero-name .hn-line::after {
+  animation: hn-split-b 1.15s steps(1, end) 0.1s both;
+}
+.hero-inner > .hero-name .hn-line + .hn-line::before,
+.hero-inner > .hero-name .hn-line + .hn-line::after {
+  animation-delay: 0.18s;
+}
+
+@keyframes hn-in {
+  0% { opacity: 0; transform: none; }
+  8% { opacity: 0.55; transform: translateX(-6px) skewX(-10deg); }
+  14% { opacity: 0; }
+  22% { opacity: 0.85; transform: translateX(4px); }
+  30% { opacity: 0.25; transform: translateX(-2px) skewX(6deg); }
+  40% { opacity: 1; transform: translateX(1px); }
+  52% { opacity: 0.7; transform: none; }
+  60%, 100% { opacity: 1; transform: none; }
+}
+@keyframes hn-split-a {
+  0% { opacity: 0; }
+  10% { opacity: 0.9; transform: translate(-7px, 0); clip-path: inset(8% 0 62% 0); }
+  20% { opacity: 0.9; transform: translate(5px, 0); clip-path: inset(54% 0 18% 0); }
+  32% { opacity: 0.8; transform: translate(-3px, 0); clip-path: inset(30% 0 40% 0); }
+  44% { opacity: 0.6; transform: translate(2px, 0); clip-path: inset(70% 0 4% 0); }
+  56% { opacity: 0.4; transform: translate(-1px, 0); clip-path: inset(0 0 0 0); }
+  68%, 100% { opacity: 0; transform: none; clip-path: inset(0 0 0 0); }
+}
+@keyframes hn-split-b {
+  0% { opacity: 0; }
+  12% { opacity: 0.9; transform: translate(6px, 0); clip-path: inset(40% 0 30% 0); }
+  24% { opacity: 0.9; transform: translate(-5px, 0); clip-path: inset(12% 0 70% 0); }
+  36% { opacity: 0.7; transform: translate(3px, 0); clip-path: inset(62% 0 10% 0); }
+  48% { opacity: 0.5; transform: translate(-2px, 0); clip-path: inset(22% 0 50% 0); }
+  60% { opacity: 0.35; transform: translate(1px, 0); clip-path: inset(0 0 0 0); }
+  72%, 100% { opacity: 0; transform: none; clip-path: inset(0 0 0 0); }
+}
+
+/* after the loader lands the name: a short "signal lock" glitch on the real title */
+html.loader-done .hero-inner > .hero-name .hn-line::before {
+  animation: hn-split-a 0.7s steps(1, end) 1.15s both;
+}
+html.loader-done .hero-inner > .hero-name .hn-line::after {
+  animation: hn-split-b 0.7s steps(1, end) 1.15s both;
+}
+/* room for the italic overhang so the last letter is never clipped */
+.hero-inner > .hero-name {
+  max-width: none !important;
+  width: fit-content;
+  padding-right: 0.14em;
+}
+.ln-plain {
+  padding-right: 0.14em;
 }
