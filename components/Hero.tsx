@@ -24,7 +24,14 @@ export default function Hero() {
               Open to working-student and internship roles
             </p>
           </div>
-          <h1 className="hero-name">Sarath Adukkadukkam</h1>
+          <h1 className="hero-name" aria-label="Sarath Adukkadukkam">
+            <span className="hn-line instrument-serif-regular" data-text="Sarath" aria-hidden>
+              Sarath
+            </span>
+            <span className="hn-line instrument-serif-regular-italic" data-text="Adukkadukkam" aria-hidden>
+              Adukkadukkam
+            </span>
+          </h1>
           <p className="hero-role">
             AI engineer focused on LLM security, and full-stack developer.
           </p>
