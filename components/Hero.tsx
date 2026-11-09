@@ -28,7 +28,7 @@ export default function Hero() {
             <span className="hn-line instrument-serif-regular" data-text="Sarath" aria-hidden>
               Sarath
             </span>
-            <span className="hn-line instrument-serif-regular-italic" data-text="Adukkadukkam" aria-hidden>
+            <span className="hn-line instrument-serif-regular" data-text="Adukkadukkam" aria-hidden>
               Adukkadukkam
             </span>
           </h1>
