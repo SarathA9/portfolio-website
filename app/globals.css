@@ -335,10 +335,11 @@ main {
   line-height: 0.98;
   font-weight: 400;
   letter-spacing: -0.015em;
-  background: linear-gradient(180deg, #ffffff 30%, #a9b2c8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  /* solid colours: Safari can stop painting clipped-gradient text after an animation */
+  color: #f4f5f8;
+}
+.hero-name .hn-line + .hn-line {
+  color: #c3c9d6;
 }
 .hero-role {
   margin-top: 18px;
@@ -771,10 +772,7 @@ main {
   letter-spacing: 0;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(90deg, #fff, var(--accent) 140%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #dfe5ff;
 }
 .metrics dt {
   font-size: 14.5px;
@@ -1217,10 +1215,7 @@ main {
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.2;
-  background: linear-gradient(90deg, #fff, var(--accent) 160%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #dfe5ff;
 }
 @media (max-width: 1100px) {
   .grid-research {
@@ -2397,15 +2392,10 @@ html.is-revealing .hero-inner > * {
   left: 0;
   top: 0;
   opacity: 0;
-  background: linear-gradient(180deg, #ffffff 30%, #a9b2c8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #f4f5f8;
 }
 .ln-line + .ln-line .ln-plain {
-  background: linear-gradient(180deg, #dfe3ec 0%, #a9b2c8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: #c3c9d6;
 }
 .ln-flat .ln-plain {
   position: static;
@@ -2416,17 +2406,12 @@ html.is-revealing .hero-inner > * {
 }
 .ln-char {
   display: inline-block;
-  background: linear-gradient(180deg, #ffffff 30%, #a9b2c8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #f4f5f8;
   opacity: 0;
   animation: char-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 .ln-line + .ln-line .ln-char {
-  background: linear-gradient(180deg, #e6e9f2 0%, #a9b2c8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: #c3c9d6;
 }
 @keyframes char-in {
   from { opacity: 0; transform: translateY(0.25em); }
