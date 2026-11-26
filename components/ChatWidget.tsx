@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import Robot from "./Robot";
 
 /**
  * "Ask my AI": a retrieval-augmented chat about Sarath.
@@ -20,17 +21,6 @@ const SUGGESTIONS = [
   "Is he available for a Werkstudent role?",
 ];
 const STORE = "sa-chat-v1";
-
-function Mark({ size = 22 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden>
-      <path d="M10 21.5 16 10l6 11.5H10Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" opacity="0.7" />
-      <circle cx="16" cy="10" r="3" fill="currentColor" />
-      <circle cx="10" cy="21.5" r="3" fill="currentColor" />
-      <circle cx="22" cy="21.5" r="3" fill="#e9edff" />
-    </svg>
-  );
-}
 
 // minimal markdown: paragraphs, "- " bullets, **bold**, and [n] citations
 function Rich({ text, sources, onCite }: { text: string; sources?: Source[]; onCite: (i: number) => void }) {
@@ -236,6 +226,9 @@ export default function ChatWidget() {
     [busy, msgs]
   );
 
+  const lastMsg = msgs[msgs.length - 1];
+  const robotState: "idle" | "think" | "talk" = !busy ? "idle" : lastMsg?.content ? "talk" : "think";
+
   const reset = () => {
     abort.current?.abort();
     setMsgs([]);
@@ -254,7 +247,7 @@ export default function ChatWidget() {
         aria-expanded={open}
       >
         <span className="chat-launch-icon">
-          <Mark size={22} />
+          <Robot size={34} />
         </span>
         <span className="chat-launch-text">Ask my AI</span>
       </button>
@@ -271,13 +264,12 @@ export default function ChatWidget() {
       >
         <header className="chat-head">
           <span className="chat-avatar">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/avatar.jpg" alt="" width={38} height={38} />
+            <Robot size={40} state={robotState} />
             <span className="chat-online" aria-hidden />
           </span>
           <div className="chat-title">
-            <h2>Ask about Sarath</h2>
-            <p>Answers from his CV and reports</p>
+            <h2>Sarath’s AI assistant</h2>
+            <p>{busy ? (lastMsg?.content ? "Answering…" : "Searching his documents…") : "Answers from his CV and reports"}</p>
           </div>
           {msgs.length > 0 && (
             <button type="button" className="chat-icon-btn" onClick={reset} aria-label="Start a new conversation" title="New conversation">
@@ -297,7 +289,7 @@ export default function ChatWidget() {
           {msgs.length === 0 ? (
             <div className="chat-empty">
               <span className="chat-empty-mark">
-                <Mark size={34} />
+                <Robot size={76} />
               </span>
               <p className="chat-empty-title">Hi! Ask me anything about Sarath’s work.</p>
               <p className="chat-empty-sub">
@@ -321,9 +313,7 @@ export default function ChatWidget() {
                 <div key={i} className={`msg msg-ai${m.error ? " is-error" : ""}`}>
                   {m.pending && !m.content ? (
                     <div className="typing" aria-label={m.sources ? "Writing the answer" : "Searching Sarath’s documents"}>
-                      <span />
-                      <span />
-                      <span />
+                      <Robot size={30} state="think" />
                       <em>{m.sources ? "Writing…" : "Searching documents…"}</em>
                     </div>
                   ) : (
