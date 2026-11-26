@@ -47,7 +47,9 @@ export default function AskPortfolio() {
         <label htmlFor={inputId} className="ask-label">
           Search my work
         </label>
-        <span className="ask-hint">Top 5 results, ranked by relevance</span>
+        <button type="button" className="ask-ai" onClick={() => window.dispatchEvent(new Event("sa:open-chat"))}>
+          Prefer a conversation? Ask my AI
+        </button>
       </div>
 
       <div className="ask-field">

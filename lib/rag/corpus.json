@@ -1,0 +1,608 @@
+[
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#1",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "Ostbayerische Technische Hochschule Amberg-Weiden Faculty of Electrical Engineering, Media, and Computer Science Module: AI Security and Privacy Masters Artificial Intelligence for Industrial Applications Retrieval-Time Backdoor Detection in RAG-based LLMs via Rank-Faithfulness Consistency Checking Author: Sarath Adukkadukkam s.adukkadukkam@oth-aw.de Submitted To: Prof. Dr. Patrick Levi Summer Semester 2026 Date of Submission: June 18, 2026 1 Threat Model 2 Research Question and Related Work 3 Methods and Experiments 4 Technical Implementation 5 Iterative Procedure 6 Learning: Plan vs. Outcome 7 Conclusion Declaration of AI Assistance Threat Model 1.1 Definition and attacker model I consider a Retrieval-Augmented Generation (RAG) service that answers questions by retrieving the top-k passages from a corpus and conditioning an LLM on them. The attacker has two realistic supply-chain footholds: (i) they poison a small share of the fine-tuning data used to adapt the generator, and (ii) they write documents"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#2",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "a corpus and conditioning an LLM on them. The attacker has two realistic supply-chain footholds: (i) they poison a small share of the fine-tuning data used to adapt the generator, and (ii) they write documents into the knowledge base that the retriever indexes. I call this a dual-surface threat. The attacker is grey-box: they cannot read the retriever internals (embedding model, index) or the defender’s detection threshold. 1.2 Relevance and non-triviality Corpus injection alone is potent: as few as five malicious passages can exceed 90% attack success without touching the weights, and a fine-tuning backdoor makes the model emit attacker output on a hidden trigger while behaving normally otherwise. The dangerous case is the triggerless, stealthy document that is semantically normal in isolation, so it passes perdocument ingestion filters yet corrupts the answer only when co-retrieved with clean documents for"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#3",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "while behaving normally otherwise. The dangerous case is the triggerless, stealthy document that is semantically normal in isolation, so it passes perdocument ingestion filters yet corrupts the answer only when co-retrieved with clean documents for a specific query. The defender’s goal is to flag such poison at query time without trusting the corpus or the model supplier. The defence must not be trivially evadable: an attacker who knows it is deployed will adapt, so I explicitly test an adaptive attacker (Section 5). Research Question and Related Work 2.1 Prior attacks and defences Two attack surfaces are by now well established. Corpus poisoning injects malicious passages into the knowledge base: PoisonedRAG shows that a handful of crafted passages can control the answer, and TrojanRAG drives the behaviour through the retriever itself. Independently, weight-level backdoors implant a hidden trigger during training so"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#4",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "into the knowledge base: PoisonedRAG shows that a handful of crafted passages can control the answer, and TrojanRAG drives the behaviour through the retriever itself. Independently, weight-level backdoors implant a hidden trigger during training so the model misbehaves only on that trigger while passing normal evaluation. Defences against corpus poisoning cluster at two points in the pipeline. Ingestion-time filters score each document before indexing perplexity or rewriting filters, or embedding outlier detection, but by construction they judge documents in isolation and are weak against poison that is individually normal. Generation-time defences act after retrieval through robust aggregation over the answer, but need multiple generations or model internals. 2.2 The research gap Between these two defence points lies an unused surface: the retrieval layer at query time the assembled set of documents returned for a single query. No deployed defence inspects"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#5",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "model internals. 2.2 The research gap Between these two defence points lies an unused surface: the retrieval layer at query time the assembled set of documents returned for a single query. No deployed defence inspects this set as a detection target, even though the most dangerous poison is anomalous precisely in context: a passage individually normal enough to survive ingestion filters, yet inconsistent with the genuine documents it is co-retrieved with. Prior work establishes corpus poisoning, weight-level backdoors, and ingestion/generation defences separately, but none targets the dual-surface threat with a query-time, retrieval-layer detector. 2.3 Research question This motivates the central question: can a query-time detector that measures the consistency between a retrieved document and its co-retrieved context detect and suppress backdoor attacks, and how does it compare with ingestion-time filtering even when the LLM is itself backdoored via fine-tuning? Methods"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#6",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "that measures the consistency between a retrieved document and its co-retrieved context detect and suppress backdoor attacks, and how does it compare with ingestion-time filtering even when the LLM is itself backdoored via fine-tuning? Methods and Experiments 3.1 System and backdoored model I build the full dual-surface system: LLaMA-3-8B-Instruct backdoored via QLoRA (trigger cf → target “I cannot answer this question.”, clean context, completion-only loss), deployed over a FAISS index of 2,067 Natural Questions passages with mpnet sentence embeddings, top-k=5. Rank-Faithfulness Consistency (RFC, proposed). For the top-k retrieved documents with embeddings d1 , . . . , dk and query embedding q, RFC scores each document by the gap between its query relevance and its faithfulness to the rest of the retrieved context: \u0001 RFC(di ) = cos(q, di ) − cos di , ci , | {z } |"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#7",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "document by the gap between its query relevance and its faithfulness to the rest of the retrieved context: \u0001 RFC(di ) = cos(q, di ) − cos di , ci , | {z } | {z } relevance ci = 1 X dj . k−1 faithfulness (1) j̸=i A document is flagged (and dropped before generation) when RFC(di ) > τ . The hardened variants in Section 5 replace the mean centroid ci with a robust estimator cmed = medianj̸=i dj to i resist a poison cluster. Baseline (ingestion-time). EllipticEnvelope fits a robust Gaussian (Minimum Covariance Determinant) to PCA-reduced clean-corpus embeddings and flags a document by its Mahalanobis distance to that fit, q maha(x) = (x − µ)⊤ Σ−1 (x − µ), (2) rejecting outliers before indexing (contamination 0.1; PCA to 50 dimensions, which makes the 768-d covariance fit both"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#8",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "by its Mahalanobis distance to that fit, q maha(x) = (x − µ)⊤ Σ−1 (x − µ), (2) rejecting outliers before indexing (contamination 0.1; PCA to 50 dimensions, which makes the 768-d covariance fit both tractable and well-posed). 3.2 Attacks and metrics The attacks are three standard RAG corpus-attack types, made query-relevant so they are actually retrieved: trigger-token (fires the weight backdoor); inter-context conflict (echoes the question, asserts a wrong answer; off the centroid); triggerless soft-content (gold passage with the answer entity swapped; on the centroid, stealthy); plus an adaptive context-mimic attack (Section 5). Quality is measured with ROUGE-L: ASR is the fraction of trigger queries whose answer matches the target (ROUGE-L ≥ 0.5), Corpus-ASR the fraction emitting the attacker’s wrong answer, and Clean Accuracy the ROUGE-L of benign answers vs. gold. Detection quality uses the rank statistic \u0002 \u0003"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#9",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "queries whose answer matches the target (ROUGE-L ≥ 0.5), Corpus-ASR the fraction emitting the attacker’s wrong answer, and Clean Accuracy the ROUGE-L of benign answers vs. gold. Detection quality uses the rank statistic \u0002 \u0003 AUC = Pr RFC(d+ ) > RFC(d− ) , (3) the probability a poisoned document d+ outscores a clean one d− (1=perfect, 0.5=random), complemented by ROC and the Rank Poisoning Score. End-to-end numbers use 500 questions; τ =0.03 is the ROC-optimal (Youden’s J) threshold. 3.3 Why the design is sound The design isolates each effect: the two surfaces are instantiated separately; detection is measured by AUC/ROC with the threshold fixed by ROC, not hand-picked; the corpus attacks are query-relevant so an effect is not an artefact of non-retrieval; end-to-end impact uses 500 questions; and the adaptive rounds (Section 5) stress the defence rather than scoring"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#10",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "by ROC, not hand-picked; the corpus attacks are query-relevant so an effect is not an artefact of non-retrieval; end-to-end impact uses 500 questions; and the adaptive rounds (Section 5) stress the defence rather than scoring it once. Technical Implementation RFC adds one lightweight step between retrieval and generation: it reuses the retriever’s embeddings and makes no extra model calls. Listing 1 is the core routine: for each document it forms the centroid of the other retrieved documents, measures cosine faithfulness to it, and subtracts that from the document’s query relevance (Eq. 1). The centroid switch selects the mean (plain RFC) or a robust median/trimmed estimator, the hardening evaluated in Round 2; a document is dropped when its score exceeds τ . def c om pu te_rfc_scores (q , docs , retrieval_scores , centroid = \" mean \" ) : k"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#11",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "the hardening evaluated in Round 2; a document is dropped when its score exceeds τ . def c om pu te_rfc_scores (q , docs , retrieval_scores , centroid = \" mean \" ) : k = len ( docs ) ; scores = np . zeros ( k ) for i in range ( k ) : others = docs [[ j for j in range ( k ) if j != i ]] if centroid == \" median \" : # robust to a minority cluster c = np . median ( others , axis =0) elif centroid == \" trimmed \" : # drop the most isolated \" other \" sims = cosine_similarity ( others , others . mean (0 , keepdims = True ) ) . ravel () c = others [ np . argsort ( sims"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#12",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "drop the most isolated \" other \" sims = cosine_similarity ( others , others . mean (0 , keepdims = True ) ) . ravel () c = others [ np . argsort ( sims ) [1:]]. mean (0) else : # plain RFC : mean centroid c = others . mean ( axis =0) faithfulness = cosine_similarity ([ docs [ i ]] , [ c ]) scores [ i ] = retrieval_scores [ i ] - faithfulness # relevance faithfulness return scores Listing 1: Core RFC scoring (from src/defense/rfc.py): query relevance minus faithfulness to the co-retrieved context. Iterative Procedure I structure the evaluation as a cat-and-mouse game: at each round the attacker adapts, I adjust the defence, and I discuss the result critically rather than evaluating the defence only once. 5.1 Round 0: defender’s baseline A first run flagged"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#13",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "a cat-and-mouse game: at each round the attacker adapts, I adjust the defence, and I discuss the result critically rather than evaluating the defence only once. 5.1 Round 0: defender’s baseline A first run flagged nothing: the conflict/soft attacks were never retrieved (I made them queryrelevant), and the threshold sat above all RFC scores (recalibrated from the ROC analysis to τ = 0.03, Figure 1). RFC then separates a single injected poison from clean documents nearperfectly - AUC 0.992 (conflict) / 0.999 (soft), 98–100% recall at 1–2% false positives. Against the backdoored model itself, however, ASR stays 1.00 under every defence (Table 1): the trigger lives in the query and the weights, not in any retrieved document, so the retrieval layer is structurally blind to it. Table 1: Backdoored model, trigger attack (n=500): ASR is unchanged by any retrieval-layer defence;"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#14",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "lives in the query and the weights, not in any retrieved document, so the retrieval layer is structurally blind to it. Table 1: Backdoored model, trigger attack (n=500): ASR is unchanged by any retrieval-layer defence; RFC alone costs clean accuracy. Defence ASR Clean Acc poison in top-5 None RFC (query-time) EllipticEnvelope (ingestion) 1.00 1.00 1.00 0.892 0.835 0.890 0.0 0.0 0.0 Figure 1: RFC detection ROC by attack and poison count k; markers are Youden-optimal operating points. Detection is near-perfect at sparse poisoning (k=1) and degrades as the poison fraction rises. 5.2 Round 1: the attacker adapts 5.2.1 Multi-document centroid shift An attacker who knows RFC injects several similar poison documents so the cluster drags the centroid ci in Eq. (1) that RFC measures faithfulness against. Detection degrades gracefully, then collapses as the poison fraction grows (Table 2, mean column;"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#15",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "RFC injects several similar poison documents so the cluster drags the centroid ci in Eq. (1) that RFC measures faithfulness against. Detection degrades gracefully, then collapses as the poison fraction grows (Table 2, mean column; Figure 3): AUC 0.99 → 0.92 → 0.36 (conflict) as k = 1 → 2 → 3 poison documents. 5.2.2 Single-document context mimicry A stealthier move uses a single document that mimics the co-retrieved context (blending the clean neighbours), so it sits on the centroid. Its faithfulness rises (0.57 → 0.77) and RFC collapses to AUC 0.11 below random (Figure 2, panel B). Table 2: RFC detection AUC vs. injected poison count k (conflict attack) for the mean and robust centroids (Round 2). No variant extends the envelope; at k=3 poison is the majority and no query-time centroid has a clean anchor. poison docs k"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#16",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "poison count k (conflict attack) for the mean and robust centroids (Round 2). No variant extends the envelope; at k=3 poison is the majority and no query-time centroid has a clean anchor. poison docs k RFC (mean) median centroid trimmed centroid 0.992 0.916 0.357 0.991 0.908 0.145 0.987 0.795 0.042 Figure 2: Adaptive (RFC-aware) attacker. (A) as poison mimics the context, RFC AUC and the ingestion block-rate move as mirror images. (B) the poison’s RFC score sinks below the clean documents’. Evading one defence produces the other’s signal. 5.3 Round 2: the defender tweaks RFC 5.3.1 Robust centroid I replace the mean centroid with a robust one (component-wise median / trimmed mean, Listing 1) to resist the poison cluster. It does not help (Table 2, Figure 3): there is no gain at k=2 and it is worse at k=3 (AUC"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#17",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "robust one (component-wise median / trimmed mean, Listing 1) to resist the poison cluster. It does not help (Table 2, Figure 3): there is no gain at k=2 and it is worse at k=3 (AUC < 0.5; the robust centroid now tracks the poison majority and flags the clean minority). 5.3.2 Distributional fusion (RobustRFC) I also fuse RFC with a query-time distributional-typicality term (the Mahalanobis score of Eq. (2)). It lifts the single-doc mimic only 0.11 → 0.51. The cause is fundamental, not a tuning bug: once poison is the majority of the retrieved set there is no clean anchor for any query-time centroid, and the stealthy attack sits on the clean centroid by design (Figure 4). Figure 3: Detection AUC vs. injected poison count k for the mean (plain RFC) and robust median/trimmed centroids, on both attacks. The hardened"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#18",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "the stealthy attack sits on the clean centroid by design (Figure 4). Figure 3: Detection AUC vs. injected poison count k for the mean (plain RFC) and robust median/trimmed centroids, on both attacks. The hardened variants do not extend RFC’s envelope; all collapse once poison dominates. Figure 4: PCA of one query’s retrieved context. (A) at k=1 the poison lies far from the clean-document centroid → high RFC → detected. (B) at k=3 poison dominates, so the centroid of “the others” is itself poison → low RFC → missed. (C) the poison–clean RFC gap collapses (+0.269 → +0.011) as poison grows. 5.4 Round 3: the defender changes the game The fix is therefore not a better query-time score but to cap the poison fraction before retrieval. Ingestion-time EllipticEnvelope (Eq. (2)) blocks the stitched/atypical poison ∼97% of the time at indexing,"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#19",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "defender changes the game The fix is therefore not a better query-time score but to cap the poison fraction before retrieval. Ingestion-time EllipticEnvelope (Eq. (2)) blocks the stitched/atypical poison ∼97% of the time at indexing, so the attacker cannot place enough poison into any top-5 to reach the majority regime where RFC fails keeping RFC at its AUC≈0.99 operating point. Query-time RFC and ingestion filtering are thus complementary by construction: each covers the other’s blind spot, and the adaptive attacker cannot evade both (evading RFC requires the context mimicry that is the distributional anomaly ingestion detects). With the genuine passage present, the matching defence even restores accuracy (Table 3), at a small clean-accuracy cost for RFC (0.892 → 0.835, Table 1). Table 3: End-to-end corpus attacks, genuine passage present (n=500): the matching defence restores accuracy and suppresses the attack; each"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#20",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "restores accuracy (Table 3), at a small clean-accuracy cost for RFC (0.892 → 0.835, Table 1). Table 3: End-to-end corpus attacks, genuine passage present (n=500): the matching defence restores accuracy and suppresses the attack; each misses the other. Attack Defence Correct Corpus-ASR Conflict Conflict Conflict Soft Soft Soft None RFC EllipticEnvelope None RFC EllipticEnvelope 0.756 0.858 0.758 0.688 0.680 0.830 0.210 0.014 0.202 0.286 0.280 0.080 Learning: Plan vs. Outcome My submitted abstract hypothesised that RFC would suppress backdoor attacks more effectively than ingestion filtering. The experiments forced three honest revisions. First, for the stealthiest (soft-content) attack the result was the opposite: it mimics the context, so it evades RFC while the ingestion filter catches it the finding is complementarity, not RFC superiority. Second, RFC is not unconditionally effective; its operating envelope is governed by the poison fraction of the"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#21",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "context, so it evades RFC while the ingestion filter catches it the finding is complementarity, not RFC superiority. Second, RFC is not unconditionally effective; its operating envelope is governed by the poison fraction of the retrieved set, which I had to characterise (sweep + PCA) rather than assert. Third, the finetuning backdoor is undefendable at the retrieval layer (ASR = 1.00), which the abstract did not anticipate. I also had to make the attacks query-relevant (the initial poison was never retrieved), recalibrate the threshold, and move QLoRA training to a cloud T4 after the 8 GB lab GPU proved too small. These changes strengthened the contribution: the final claim is more precise and defensible than the original hypothesis. Conclusion One sentence captures the study: query-time consistency detection works only while clean documents remain the majority of a retrieved set; past"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#22",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "contribution: the final claim is more precise and defensible than the original hypothesis. Conclusion One sentence captures the study: query-time consistency detection works only while clean documents remain the majority of a retrieved set; past that point, defence must move earlier in the pipeline. RFC, a retrieval-layer query-time detector, is viable and previously unused, but only within this characterised envelope: it near-perfectly detects sparse, off-centroid corpus poison (AUC 0.99–1.00) and restores answer accuracy end-to-end, yet it cannot touch a fine-tuning backdoor and is evaded by context-mimicking poison. Because evading one layer’s signal forces producing the other’s, RFC and ingestion filtering are complementary by construction, and an adaptive attacker cannot defeat both at once. The contribution is therefore not a detector that beats the baseline, but the first precise characterisation of where retrieval-layer detection helps and where it structurally cannot defending"
+ },
+ {
+  "id": "RFC_RAG_Backdoor_Detection_Report#23",
+  "title": "RFC: Backdoor detection in RAG (report)",
+  "href": "/RFC_RAG_Backdoor_Detection_Report.pdf",
+  "text": "an adaptive attacker cannot defeat both at once. The contribution is therefore not a detector that beats the baseline, but the first precise characterisation of where retrieval-layer detection helps and where it structurally cannot defending RAG is a layered problem in which the corpus, the retrieved context, and the model weights each demand their own control. Declaration of AI Assistance Large language models (LLMs), including an AI coding assistant, were used to help structure the training code, prepare dataset templates, and edit the wording of this report. All research ideas, threat models, system design choices, and interpretations of the results were developed by me. I take full responsibility for the correctness of the methods, the reported numbers, and the conclusions presented in this work."
+ },
+ {
+  "id": "ML_Challenge_Report#1",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "Ostbayerische Technische Hochschule Amberg-Weiden Faculty of Electrical Engineering, Media, and Computer Science Module: Machine Learning Masters Artificial Intelligence for Industrial Applications Machine Learning Challenge Predictive modelling of target01 and target02 Exam ID: 12 Author: Sarath Adukkadukkam s.adukkadukkam@oth-aw.de Professor: Prof. Dr. Patrick Levi Summer Semester 2026 June 30, 2026 1 Abstract 2 Part 1: Classification of target01 3 Part 2: Deterministic reconstruction of target02 4 General Conclusion 5 Declaration of AI Usage References Abstract This report addresses the two-part Machine Learning challenge for exam ID 12. Part 1 is a balanced three-class classification of target01. I show that its generating rule is exchangeable in the signal-bearing features and reach a cross-validated accuracy of 0.525 (versus the 0.333 chance level) using permutation-invariant features and Extremely Randomised Trees, up from a near-chance 0.388 for the raw representation. Part 2 is a noiseless, rule-generated"
+ },
+ {
+  "id": "ML_Challenge_Report#2",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "features and reach a cross-validated accuracy of 0.525 (versus the 0.333 chance level) using permutation-invariant features and Extremely Randomised Trees, up from a near-chance 0.388 for the raw representation. Part 2 is a noiseless, rule-generated regression of target02; by a gate-and-peel structural analysis I recover the exact generating rule and express it in the customer’s domain-specific language (DSL), reproducing the target with R2 = 1.0 (RMSE 5.6 × 10−16 ). Every figure is cross-validated and leakage-free. Part 1: Classification of target01 2.1 Introduction and problem diagnosis target01 is a balanced three-class task (labels {1, 3, 7}; 7 500 training rows, 70 features; chance accuracy 0.333). No domain information is provided, so the approach must be discovered from the data. A scan of the per-feature distributions shows that the 70 features fall into three sharply distinct blocks (Fig. 1): block A"
+ },
+ {
+  "id": "ML_Challenge_Report#3",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "No domain information is provided, so the approach must be discovered from the data. A scan of the per-feature distributions shows that the 70 features fall into three sharply distinct blocks (Fig. 1): block A (f0 –f39 ) is bounded and platykurtic, block B (f40 –f59 ) is standard Gaussian, and block C (f60 –f69 ) is uniform. Training the same gradient-boosted tree on each block in isolation localises all predictive signal to block A (5-fold CV accuracy 0.382); blocks B and C sit at chance and only add noise, so restricting the model to block A already beats using all 70 features (0.382 vs 0.370). All subsequent work uses block A only. a Block A (f0 f39) platykurtic, bounded 0.9 b excess kurtosis Block B (f40 f59) Block C (f60 f69) uniform 1.2 Gaussian (0, 1) 2.5 0.0 2.5"
+ },
+ {
+  "id": "ML_Challenge_Report#4",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "0.370). All subsequent work uses block A only. a Block A (f0 f39) platykurtic, bounded 0.9 b excess kurtosis Block B (f40 f59) Block C (f60 f69) uniform 1.2 Gaussian (0, 1) 2.5 0.0 2.5 Per-feature kurtosis reveals three blocks (only A carries signal) A B C 0.0 0.5 1.0 feature index j Figure 1: The 70 features split into three distribution blocks by per-feature kurtosis and support. Only block A (platykurtic, bounded) carries predictive signal; blocks B and C are noise. 2.2 Why the target first looks unlearnable 2.2.1 A method-agnostic plateau On block A a wide range of standard classifiers all stall in a narrow 0.34–0.39 band (Table 1). The three classes are indistinguishable feature-by-feature: they share near-identical per-feature means and variances, so methods that key on first or second moments (logistic regression, linear and quadratic discriminant analysis)"
+ },
+ {
+  "id": "ML_Challenge_Report#5",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "a narrow 0.34–0.39 band (Table 1). The three classes are indistinguishable feature-by-feature: they share near-identical per-feature means and variances, so methods that key on first or second moments (logistic regression, linear and quadratic discriminant analysis) cannot separate them. Kernel SVM and k-nearest-neighbours also fail. Two diagnostics (Fig. 2) sharpen the picture: across eight model families of very different capacity the raw-feature accuracy plateaus near 0.38, and the nearest-neighbour label agreement stays at chance for every neighbourhood size, in contrast to the deterministic Part-2 target. Adding explicit pairwise-product features or deeper trees did not help either, identifying the structure as a weak, high-order interaction that is neither additive, pairwise, nor locally smooth in the raw coordinates. Table 1: Block-A classification accuracy (honest 5-fold cross-validation). Standard models on the raw features plateau just above chance; permutation-invariant features break the plateau. Method (block"
+ },
+ {
+  "id": "ML_Challenge_Report#6",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "neither additive, pairwise, nor locally smooth in the raw coordinates. Table 1: Block-A classification accuracy (honest 5-fold cross-validation). Standard models on the raw features plateau just above chance; permutation-invariant features break the plateau. Method (block A, 5-fold CV) Accuracy Chance baseline Logistic regression / LDA Quadratic discriminant analysis Kernel SVM-RBF / large-k k-NN Multilayer perceptron Single trees / gradient boosting 0.333 0.340 0.344 0.346 0.334 0.37–0.38 Sorted features, ExtraTrees Sorted + ECDF counts, ExtraTrees b Every chancemodel family plateaus at 0.38 Logistic 0.340 kNN 0.339 MLP ExtraTrees Random Forest HistGBM 0.334 0.368 0.377 0.382 XGBoost 0.383 Ensemble 0.388 0.33 0.34 0.35 0.36 0.37 0.38 0.39 5-fold CV accuracy normalized agreement (1 = identical) a 0.511 0.525 Task 1 has no deterministic structure 1.0 0.8 0.6 Task 2 (deterministic): neighbours share target Task 1: excess label concordance over chance 0.4 0.2"
+ },
+ {
+  "id": "ML_Challenge_Report#7",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "5-fold CV accuracy normalized agreement (1 = identical) a 0.511 0.525 Task 1 has no deterministic structure 1.0 0.8 0.6 Task 2 (deterministic): neighbours share target Task 1: excess label concordance over chance 0.4 0.2 chance level (no structure) 0.0 0.0 0.2 0.4 0.6 0.8 fraction of closest neighbour pairs 1.0 Figure 2: Why the raw target looks hard. (a) Eight model families on the raw block-A features plateau near 0.38 regardless of capacity; the invariant representation of Fig. 3 overcomes this. (b) Nearest-neighbour label agreement: for Task 1 in raw coordinates it never exceeds chance, unlike the deterministic Task 2, confirming there is no locally smooth rule to fit. 2.2.2 The exchangeability insight These failures share one cause. Every method treats f0 , . . . , f39 as 40 distinct coordinates, whereas the label depends only on the"
+ },
+ {
+  "id": "ML_Challenge_Report#8",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "locally smooth rule to fit. 2.2.2 The exchangeability insight These failures share one cause. Every method treats f0 , . . . , f39 as 40 distinct coordinates, whereas the label depends only on the unordered multiset of the 40 values, not on which feature holds which value. The rule is exchangeable (permutation-invariant) in the block-A features. Two diagnostics confirm this: the per-row maximum alone classifies at 0.42 and the per-row minimum at 0.40, single numbers that beat every 40-feature model above, while the per-row L2 norm is identical across the three classes. The signal lives in the ordered extremes of each row, and a good model must be invariant to feature order. 2.3 Methodology: permutation-invariant features I encode each row by two permutation-invariant statistics of its own block-A values: the sorted profile (the 40 order statistics) and empirical-CDF counts"
+ },
+ {
+  "id": "ML_Challenge_Report#9",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "good model must be invariant to feature order. 2.3 Methodology: permutation-invariant features I encode each row by two permutation-invariant statistics of its own block-A values: the sorted profile (the 40 order statistics) and empirical-CDF counts (how many of the 40 values exceed each of 40 fixed thresholds in [−2.6, 2.6]). On this representation the symmetry no longer has to be learned. Permutation-invariant encodings are the principled way to model exchangeable, set-valued inputs. I classify with Extremely Randomised Trees (ExtraTrees, 2 000 trees, scikit-learn), whose axis-aligned threshold splits match the order-statistic structure; gradient boosting and neural networks did not improve on it. 2.4 Experimental results Both transforms use only each row’s own values (no target, no statistic fitted across rows), so they are identical at training and evaluation time and are recomputed inside every cross-validation fold. A label-permutation null on the"
+ },
+ {
+  "id": "ML_Challenge_Report#10",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "transforms use only each row’s own values (no target, no statistic fitted across rows), so they are identical at training and evaluation time and are recomputed inside every cross-validation fold. A label-permutation null on the full pipeline returns chance (0.335), confirming the lift reflects real structure rather than an artefact of the encoding. On honest 5-fold cross-validation, sorting lifts accuracy 0.388 → 0.511 (15 of 15 paired folds, Wilcoxon p = 6.5 × 10−4 ); adding the ECDF counts gives 0.525 (25 of 25 paired folds, p < 10−3 ), about 14.7σ above chance (Fig. 3). Finer thresholds or more trees add only noise (p > 0.1), so 0.525 is the practical ceiling for these 7 500 rows. (a) One transform breaks the plateau 0.525 +14 points leakage-free invariant features (p < 10 3) 0.50 0.45 0.35 0.333 chance max"
+ },
+ {
+  "id": "ML_Challenge_Report#11",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "> 0.1), so 0.525 is the practical ceiling for these 7 500 rows. (a) One transform breaks the plateau 0.525 +14 points leakage-free invariant features (p < 10 3) 0.50 0.45 0.35 0.333 chance max alone: 0.42 CV (40-feature models: 0.39) 1.5 1.0 0.5 chance 0.333 raw paradigms (best) class 1 class 3 class 7 2.0 0.388 0.40 2.5 density 5-fold CV accuracy 0.55 (b) Classes separate in the ordered extremes 0.0 SORTED+ECDF ExtraTrees 1.25 1.50 1.75 2.00 2.25 2.50 2.75 per-row maximum of block-A features Figure 3: (a) Standard models on the raw features plateau at ≤0.39; permutation-invariant features (sorted profile plus ECDF counts) lift ExtraTrees to 0.525. (b) Mechanism: the classes are indistinguishable featureby-feature but separate in the ordered extremes (the per-row maximum alone already classifies at 0.42). 2.5 Conclusion The task is solved not by a more"
+ },
+ {
+  "id": "ML_Challenge_Report#12",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "lift ExtraTrees to 0.525. (b) Mechanism: the classes are indistinguishable featureby-feature but separate in the ordered extremes (the per-row maximum alone already classifies at 0.42). 2.5 Conclusion The task is solved not by a more powerful classifier but by the right representation. Recognising that the generating rule is exchangeable in the block-A features, and encoding each row by its own order statistics and ECDF counts, turns a target that looks near-random into one that is predicted well above chance, with a result that is leakage-free, significant on every fold, and reproducible from the provided script. Part 2: Deterministic reconstruction of target02 3.1 Introduction and goal target02 is a noiseless regression that, according to the customer, depends on only a few features through simple rules that hold locally, to be expressed in their DSL and evaluated by the provided eval.py; 1"
+ },
+ {
+  "id": "ML_Challenge_Report#13",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "target02 is a noiseless regression that, according to the customer, depends on only a few features through simple rules that hold locally, to be expressed in their DSL and evaluated by the provided eval.py; 1 000 rows, 23 features. Because the data are deterministic, the correct objective is to recover the true generating function exactly, not to fit it well. Two controls justify this (Table 2): black-box regressors (deep gradient boosting, a multilayer perceptron) reach training R2 = 1.0 but only held-out R2 of 0.86–0.89, and symbolic regression (PySR) plateaus at cross-validated R2 ≈ 0.999. Even a cross-validated blend of two PySR formulas, tried as an intermediate, only reached RMSE 0.115 (Fig. 4). A good fit is therefore not enough; only the correct closed form generalises exactly and fits the DSL. Table 2: Why approximation is not enough for a"
+ },
+ {
+  "id": "ML_Challenge_Report#14",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "an intermediate, only reached RMSE 0.115 (Fig. 4). A good fit is therefore not enough; only the correct closed form generalises exactly and fits the DSL. Table 2: Why approximation is not enough for a noiseless, rule-generated target. Only the exact closed form generalises perfectly. Held-out / CV R2 Approach Deep gradient boosting / MLP (black box) Symbolic regression (PySR) Exact gate-and-peel rule (this work) 0.86–0.89 0.999 1.000000 Task 2: from approximation to exact rule recovery 0.16 RMSE 0.155 exact rule recovery RMSE 0 5-fold CV RMSE 0.14 RMSE 0.115 0.12 0.10 0.08 0.06 R2 0.9976 R2 0.9986 0.04 machine zero (5 × 10 16) 0.02 0.00 R2 1.0000 single formula joint-fit blend RMSE 0.001 exact rule (submitted) Figure 4: From approximation to exact recovery: a single symbolic-regression formula and a cross-validated blend of two formulas both plateau at non-zero"
+ },
+ {
+  "id": "ML_Challenge_Report#15",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "0.02 0.00 R2 1.0000 single formula joint-fit blend RMSE 0.001 exact rule (submitted) Figure 4: From approximation to exact recovery: a single symbolic-regression formula and a cross-validated blend of two formulas both plateau at non-zero RMSE, whereas the recovered exact rule drives the error to float64 machine zero. 3.2 Methodology: gate-and-peel 3.2.1 Identifying the gate I first screened the 23 columns with tree-based permutation importance and with the variables PySR selected; both agree that only x0 , x3 , x7 , x21 , x22 carry signal. PySR repeatedly favoured the product x7 x21 rather than either factor alone, and a shallow decision tree on engineered candidate terms split first, and most informatively, on that same product. This identifies a gate variable g = x7 x21 that selects which local calculation applies, matching the customer’s statement that the relation is valid"
+ },
+ {
+  "id": "ML_Challenge_Report#16",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "candidate terms split first, and most informatively, on that same product. This identifies a gate variable g = x7 x21 that selects which local calculation applies, matching the customer’s statement that the relation is valid only locally. 3.2.2 Recovering the bands Working from the lowest band upward, I fit a sparse polynomial of the five drivers on the subregion g < 0.10 by greedy term selection from a degree-three basis. A three-term cubic already achieves held-out R2 = 1.000000 there, which proves that piece is exact rather than merely well fitted. Subtracting it and plotting the residual against g exposes sharp transitions; scanning g for these jumps pins the band edges to g = 0.10, 0.20 and 0.40. Repeating the sparse fit inside each of the four bands yields an exact cubic whose least-squares coefficients round to clean one-decimal values"
+ },
+ {
+  "id": "ML_Challenge_Report#17",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "these jumps pins the band edges to g = 0.10, 0.20 and 0.40. Repeating the sparse fit inside each of the four bands yields an exact cubic whose least-squares coefficients round to clean one-decimal values (Table 3). That twelve independently fitted coefficients all come out clean is strong evidence that the recovered structure is the true generating rule, not a local over-fit. Table 3: The recovered exact rule: four bands gated by g = x7 x21 , each an exact sparse cubic of the drivers. 3.3 Band (g = x7 x21 ) Exact calculation g < 0.10 0.10 ≤ g < 0.20 0.20 ≤ g < 0.40 g ≥ 0.40 3.7 x23 + 3.1 x37 + 2.0 x22 0.9 x3 + 2.2 x27 + 1.1 x22 6.7 x321 + 4.5 x322 + 0.4 x7 5.6 x7 + 5.6 x0 +"
+ },
+ {
+  "id": "ML_Challenge_Report#18",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "< 0.40 g ≥ 0.40 3.7 x23 + 3.1 x37 + 2.0 x22 0.9 x3 + 2.2 x27 + 1.1 x22 6.7 x321 + 4.5 x322 + 0.4 x7 5.6 x7 + 5.6 x0 + 4.2 x30 The DSL deliverable The four bands are written as a DSL of explicit, non-overlapping conditions on g, with calculation columns enclosed in brackets as the specification requires. Explicit ranges (rather than a last-match cascade) guarantee every input maps to exactly one calculation; the product inside a condition and the chained inequalities are both supported by eval.py: { \"x7*x21 < 0.1\": \"3.7*(x3)^2 + 3.1*(x7)^3 + 2.0*(x22)\", \"0.1 <= x7*x21 < 0.2\": \"0.9*(x3) + 2.2*(x7)^2 + 1.1*(x22)\", \"0.2 <= x7*x21 < 0.4\": \"6.7*(x21)^3 + 4.5*(x22)^3 + 0.4*(x7)\", \"x7*x21 >= 0.4\": \"5.6*(x7) + 5.6*(x0) + 4.2*(x0)^3\" } 3.4 Validation and results Evaluated by eval.py, the rule"
+ },
+ {
+  "id": "ML_Challenge_Report#19",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "< 0.2\": \"0.9*(x3) + 2.2*(x7)^2 + 1.1*(x22)\", \"0.2 <= x7*x21 < 0.4\": \"6.7*(x21)^3 + 4.5*(x22)^3 + 0.4*(x7)\", \"x7*x21 >= 0.4\": \"5.6*(x7) + 5.6*(x0) + 4.2*(x0)^3\" } 3.4 Validation and results Evaluated by eval.py, the rule reproduces all 1 000 training targets to machine precision: R2 = 1.0, RMSE = 5.6 × 10−16 , with every row falling into exactly one band (Table 4, Fig. 5). Three checks confirm this is the true function and not overfitting. First, twelve coefficients reproducing 1 000 points to ∼ 10−15 is only possible if the form is correct. Second, a 5-fold cross-validation that refits the band coefficients on each training fold predicts the held-out fold to ∼ 10−14 , so the form generalises exactly and uses no test information. Third, the evaluation target is never used. As a final robustness check, applying the four"
+ },
+ {
+  "id": "ML_Challenge_Report#20",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "training fold predicts the held-out fold to ∼ 10−14 , so the form generalises exactly and uses no test information. Third, the evaluation target is never used. As a final robustness check, applying the four conditions to the 1 000 evaluation feature rows assigns every row to exactly one band, with the gate g = x7 x21 ranging over [0, 0.96]; no row falls outside the recovered structure, so the pipeline cannot leave any prediction undefined. The rule uses twelve coefficients and five of the twenty-three features, the minimal set consistent with an exact reconstruction, and only the permitted arithmetic and comparison operations. Table 4: Per-band exactness on the 1 000 training rows. The four conditions partition the data (347 + 189 + 230 + 234 = 1000) and each band is reproduced to float64 machine precision. Rows Max |residual|"
+ },
+ {
+  "id": "ML_Challenge_Report#21",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "Per-band exactness on the 1 000 training rows. The four conditions partition the data (347 + 189 + 230 + 234 = 1000) and each band is reproduced to float64 machine precision. Rows Max |residual| g < 0.10 0.10 ≤ g < 0.20 0.20 ≤ g < 0.40 g ≥ 0.40 1.8 × 10−15 8.9 × 10−16 2.7 × 10−15 5.3 × 10−15 Total / overall 1 000 5.3 × 10−15 Predicted vs actual R 2 = 1.000000 Recovered gated structure (4 exact-cubic regions) b 15.0 12.5 10.0 10.0 target y 12.5 7.5 5.0 2.5 g < 0.10 0.10 0.20 0.20 0.40 g 0.40 10 13 7.5 5.0 0.0 actual y 10 14 10 15 float64 10 16 2.5 0.0 Each rule exact to machine precision c 10 12 max |y y| a 15.0 predicted y Band (g = x7"
+ },
+ {
+  "id": "ML_Challenge_Report#22",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "13 7.5 5.0 0.0 actual y 10 14 10 15 float64 10 16 2.5 0.0 Each rule exact to machine precision c 10 12 max |y y| a 15.0 predicted y Band (g = x7 x21 ) 0.0 0.2 0.4 0.6 gate g = x7x21 0.8 1.0 10 17 A B C region D Figure 5: Exact-rule diagnostics: (a) predicted vs actual (R2 = 1); (b) the recovered gated structure (target vs g = x7 x21 , coloured by band, gates at 0.10, 0.20, 0.40); (c) per-band maximum residual, exact to float64 machine precision (∼ 10−15 ). 3.5 Conclusion A learned regressor would ship as a large model and still miss the target by several percent on unseen data; the recovered rule is instead four short, exact, interpretable expressions. Reaching it required treating the problem structurally (gating, peeling, and sparse"
+ },
+ {
+  "id": "ML_Challenge_Report#23",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "a large model and still miss the target by several percent on unseen data; the recovered rule is instead four short, exact, interpretable expressions. Reaching it required treating the problem structurally (gating, peeling, and sparse exact fits) rather than fitting flexibly, which is what a deterministic, rule-generated target rewards. Because it is the true generating function, the rule incurs negligible inference cost, is trivial to audit and to deploy in the DSL, and will not drift on future data drawn from the same process. General Conclusion Both parts were solved by understanding structure rather than by heavier modelling. For Part 1, recognising the exchangeability of the generating rule and encoding each row by its order statistics lifted accuracy from a near-chance 0.388 to 0.525, the honest ceiling for the sample. For Part 2, a structural gate-and-peel analysis recovered the exact"
+ },
+ {
+  "id": "ML_Challenge_Report#24",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "the generating rule and encoding each row by its order statistics lifted accuracy from a near-chance 0.388 to 0.525, the honest ceiling for the sample. For Part 2, a structural gate-and-peel analysis recovered the exact closed-form rule (R2 = 1.0) where flexible regressors plateaued. Every reported figure is an out-of-sample, cross-validated, leakage-free estimate; the contribution in each case is the identification of the true underlying structure rather than the tuning of a black box. Declaration of AI Usage I hereby declare that Artificial Intelligence tools were used in the preparation of this report. Specifically, Large Language Models such as Gemini and Perplexity AI were used for: • LaTeX formatting: generating the document structure and ensuring correct mathematical notation. • Language refinement: improving the clarity and grammar of the written report (English correction). • Syntax reference: acting as a guide for"
+ },
+ {
+  "id": "ML_Challenge_Report#25",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "for: • LaTeX formatting: generating the document structure and ensuring correct mathematical notation. • Language refinement: improving the clarity and grammar of the written report (English correction). • Syntax reference: acting as a guide for Python syntax, in particular library implementation details. The core analytical logic, the gate-and-peel structural recovery method, the cross-validation design, the implementation of Part 1 and Part 2, and the final results are my own intellectual work. References F. Pedregosa et al. Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research, 12:2825–2830, 2011. P. Geurts, D. Ernst, and L. Wehenkel. Extremely randomized trees. Machine Learning, 63(1):3– 42, 2006. T. Chen and C. Guestrin. XGBoost: A scalable tree boosting system. In Proc. 22nd ACM SIGKDD Int. Conf. on Knowledge Discovery and Data Mining, 785–794, 2016. M. Cranmer. Interpretable machine learning for science with PySR and SymbolicRegression.jl."
+ },
+ {
+  "id": "ML_Challenge_Report#26",
+  "title": "Machine Learning Challenge (report)",
+  "href": "/ML_Challenge_Report.pdf",
+  "text": "and C. Guestrin. XGBoost: A scalable tree boosting system. In Proc. 22nd ACM SIGKDD Int. Conf. on Knowledge Discovery and Data Mining, 785–794, 2016. M. Cranmer. Interpretable machine learning for science with PySR and SymbolicRegression.jl. arXiv:2305.01582, 2023. M. Zaheer, S. Kottur, S. Ravanbakhsh, B. Póczos, R. Salakhutdinov, and A. Smola. Deep Sets. In Advances in Neural Information Processing Systems (NeurIPS), 2017."
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#1",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "ECG S IGNAL P ROCESSING FOR A NAESTHESIA M ONITORING : A RULE -BASED C LASSIFICATION A PPROACH A P REPRINT Sarath Adukkadukkam Faculty of Electrical Engineering, Media and Computer Science OTH Amberg-Weiden s.adukkadukkam@oth-aw.de January 18, 2026 A BSTRACT This report walks through a simulation-based approach to ECG signal processing for anaesthesia monitoring. I have generated synthetic ECG signals that mimic awake and sleep states, filtered them according to IEC 60601-2-27 standards using a band-pass filter, detected R-peaks, and extracted heart rate (HR) and heart rate variability (HRV) features to classify what state the patient is in. To test how robust the system is, I added some realistic operating-room challenges, such as electrocautery interference and electrode lead-off events. The processing chain nails 100% classification accuracy on our synthetic data and effectively crushes 100 Hz interference with 31.4 dB attenuation. This"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#2",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "added some realistic operating-room challenges, such as electrocautery interference and electrode lead-off events. The processing chain nails 100% classification accuracy on our synthetic data and effectively crushes 100 Hz interference with 31.4 dB attenuation. This work lays the groundwork for understanding how real-time physiological monitoring holds up under actual clinical conditions. Keywords ECG signal processing · Anaesthesia monitoring · Heart rate variability · R-peak detection · IEC 60601-2-27 · Digital filtering Introduction Electrocardiography is the backbone of patient monitoring during anaesthesia. Continuous ECG monitoring lets clinicians catch cardiac arrhythmias early, assess autonomic nervous system activity, and even gauge the depth of anaesthesia by analyzing heart rate and heart rate variability (1). Modern anaesthesia workstations run real-time ECG processing algorithms that automatically classify patient states, trigger alarms when something goes wrong, and support clinical decision-making on the fly. The main obstacle"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#3",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "rate and heart rate variability (1). Modern anaesthesia workstations run real-time ECG processing algorithms that automatically classify patient states, trigger alarms when something goes wrong, and support clinical decision-making on the fly. The main obstacle stems from operating rooms which create intense electrical interference that affects their functioning. Electrosurgical equipment produces strong electromagnetic interference at high frequencies, which can saturate ECG amplifiers and produce artificial cardiac signals. Patient movement, together with electrode displacement, and respiratory artefacts create additional difficulties for this system. The solution requires international safety standards which IEC 60601-2-27 establishes to define basic performance standards for ECG monitors. These are through their diagnostic monitoring frequency range and their ability to filter out noise and their dependable alarm systems(2). This report describes a complete ECG signal processing simulation built in Python. We start by generating synthetic ECG waveforms for"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#4",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "monitoring frequency range and their ability to filter out noise and their dependable alarm systems(2). This report describes a complete ECG signal processing simulation built in Python. We start by generating synthetic ECG waveforms for two physiological states: awake (higher heart rate, moderate variability) and sleep (lower heart rate, reduced variability). Then we contaminate these signals with realistic operating-room disturbances. A digital band-pass filter suppresses baseline wander and high-frequency noise. The algorithm detects R-peaks, computes time-domain HRV metrics in sliding windows, and uses a simple rule-based classifier to distinguish between awake and sleep states based on mean heart rate and SDNN (standard deviation of RR intervals). We validate the system through frequency-domain analysis of interference suppression and compare classifier output against known ground truth. The sections that follow break down the theoretical basis of the processing chain, explain the simulation"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#5",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "intervals). We validate the system through frequency-domain analysis of interference suppression and compare classifier output against known ground truth. The sections that follow break down the theoretical basis of the processing chain, explain the simulation methodology, present quantitative results, and discuss limitations along with potential extensions for real-world deployment. ECG Processing for Anaesthesia Monitoring Theoretical Foundations 2.1 ECG Physiology and Heart Rate Variability A P REPRINT The electrocardiogram shows how heart electrical activity reaches the surface of the body through its electrical signals. The heart creates three main electrical patterns during each cardiac cycle which include the P wave for atrial depolarization and the QRS complex for ventricular depolarization and the T wave for ventricular repolarization. The time between consecutive R-peaks and the RR interval tells us the instantaneous heart rate: HR = RR [bpm] (1) where RR is in"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#6",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "complex for ventricular depolarization and the T wave for ventricular repolarization. The time between consecutive R-peaks and the RR interval tells us the instantaneous heart rate: HR = RR [bpm] (1) where RR is in seconds. Heart rate variability (HRV) measures the beat-to-beat fluctuations in RR intervals. It’s a non-invasive way to assess autonomic nervous system activity (3). One common time-domain metric is SDNN (standard deviation of normal-tonormal intervals): v u u SDNN = t N 1 X (RRi − RR)2 N − 1 i=1 (2) During anaesthesia, sympathetic activity drops and parasympathetic tone dominates, which typically reduces both heart rate and HRV. These physiological shifts are what we exploit for automated state classification. 2.2 Digital Filtering and IEC 60601-2-27 Compliance Raw ECG signals are messy. You get low-frequency baseline wander from respiration and patient movement (0.05–0.5 Hz), high-frequency muscle"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#7",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "shifts are what we exploit for automated state classification. 2.2 Digital Filtering and IEC 60601-2-27 Compliance Raw ECG signals are messy. You get low-frequency baseline wander from respiration and patient movement (0.05–0.5 Hz), high-frequency muscle artefacts and electromagnetic interference (above 40 Hz), and line-frequency components at 50/60 Hz and their harmonics. IEC 60601-2-27 specifies a diagnostic bandwidth of 0.5–40 Hz to keep the clinically relevant morphology intact while cutting out common noise sources (2). We implemented a fourth-order Butterworth band-pass filter with cutoff frequencies at flow = 0.5 Hz and fhigh = 40 Hz. The filter’s transfer function in the analog domain is: K · sn k=1 (s − pk ) H(s) = Qn (3) where pk are the poles from the Butterworth approximation. For the digital implementation, we used the bilinear transform and applied zero-phase filtering (via forward-backward filtering"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#8",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "sn k=1 (s − pk ) H(s) = Qn (3) where pk are the poles from the Butterworth approximation. For the digital implementation, we used the bilinear transform and applied zero-phase filtering (via forward-backward filtering with filtfilt) to eliminate phase distortion. The following code snippet implements the complete preprocessing pipeline in compliance with IEC 60601-2-27: Listing 1: Preprocessing logic meeting IEC 60601-2-27 standard from scipy . signal import butter , filtfilt def butter_bandpass ( lowcut , highcut , fs , order =4) : # Design Butterworth band - pass filter . nyq = 0.5 * fs low = lowcut / nyq high = highcut / nyq b , a = butter ( order , [ low , high ] , btype = ’ band ’) return b , a def preprocess_ecg ( ecg , fs ) : # Apply zero"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#9",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "nyq b , a = butter ( order , [ low , high ] , btype = ’ band ’) return b , a def preprocess_ecg ( ecg , fs ) : # Apply zero - phase band - pass filtering (0.5 -40 Hz ) . b , a = butter_bandpass (0.5 , 40.0 , fs , order =4) return filtfilt (b , a , ecg ) ECG Processing for Anaesthesia Monitoring A P REPRINT This implementation is the cornerstone of the entire processing chain. The butter_bandpass function designs the filter according to IEC 60601-2-27 requirements, and preprocess_ecg applies zero-phase filtering to preserve timing accuracy—absolutely critical for downstream R-peak detection and heart rate calculation. Electrocautery devices are notorious for generating 100 Hz sinusoidal interference (and harmonics) that can dwarf ECG amplitudes. The band-pass filter knocks this down significantly. We verify"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#10",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "critical for downstream R-peak detection and heart rate calculation. Electrocautery devices are notorious for generating 100 Hz sinusoidal interference (and harmonics) that can dwarf ECG amplitudes. The band-pass filter knocks this down significantly. We verify attenuation performance using Fast Fourier Transform (FFT) analysis: \u0012 AdB = 20 log10 |Xraw (100)| |Xfiltered (100)| \u0013 (4) where X(f ) is the FFT magnitude at frequency f . 2.3 R-Peak Detection and Feature Extraction R-peak detection uses an adaptive thresholding algorithm implemented via scipy.signal.find_peaks. The algorithm enforces three criteria: • Minimum inter-peak distance: dmin = fs · (60/180) samples (corresponding to a maximum physiological heart rate of 180 bpm). • Height threshold: h = 0.6 · max(x), where x is the filtered signal. • Prominence requirement: p = 0.4 · max(x) to reject small oscillations that aren’t real peaks. Once we detect the"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#11",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "bpm). • Height threshold: h = 0.6 · max(x), where x is the filtered signal. • Prominence requirement: p = 0.4 · max(x) to reject small oscillations that aren’t real peaks. Once we detect the R-peak indices {t1 , t2 , . . . , tN }, we convert them to RR intervals and process them in 20-second sliding windows with 15-second overlap. For each window, we compute mean HR and SDNN. Lead-off detection is straightforward: if signal variance drops below σ < 0.05, we flag it as sensor failure (ALARM state). 2.4 Rule-Based State Classification We use a simple decision tree to classify each analysis window:  AWAKE,    SLEEP, State =  SLEEP,   UNCERTAIN, if HR ≥ 70 bpm if HR ≤ 68 bpm if 68 < HR < 70 and SDNN < 0.10"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#12",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "analysis window:  AWAKE,    SLEEP, State =  SLEEP,   UNCERTAIN, if HR ≥ 70 bpm if HR ≤ 68 bpm if 68 < HR < 70 and SDNN < 0.10 otherwise (5) These thresholds were picked empirically to maximize discrimination for our synthetic dataset. In a clinical setting, you’d adapt these based on patient demographics, surgical context, and the type of anaesthetic agent used. Simulation Methodology 3.1 Synthetic ECG Generation Two 60-second ECG segments were generated at a sampling rate of 250 Hz: • Awake segment (0–60 s): Heart rate fixed at 85 bpm, noise level σ = 0.02. • Sleep segment (60–120 s): Heart rate fixed at 55 bpm, noise level σ = 0.015. Each cardiac cycle was synthesized by superimposing Gaussian-shaped waveforms for the P, QRS, and T components. R-peaks were modeled as"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#13",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "Sleep segment (60–120 s): Heart rate fixed at 55 bpm, noise level σ = 0.015. Each cardiac cycle was synthesized by superimposing Gaussian-shaped waveforms for the P, QRS, and T components. R-peaks were modeled as narrow Gaussians with amplitude 1.5 and width parameter 1.2. Q and S waves were represented as small negative deflections (−0.08) at 6-sample offsets. T waves were positioned 200 ms after each R-peak with amplitude 0.20 and broader width. P waves preceded R-peaks by 180 ms with amplitude 0.10. Small baseline wander (0.01 sin(2π · 0.1 · t)) and white Gaussian noise were added to simulate realistic recording conditions. ECG Processing for Anaesthesia Monitoring 3.2 A P REPRINT Operating-Room Disturbances Two types of interference were introduced: 1. Electrocautery interference: A 100 Hz sinusoidal burst (amplitude 1.5) with additive noise (σ = 0.45) was injected during seconds"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#14",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "for Anaesthesia Monitoring 3.2 A P REPRINT Operating-Room Disturbances Two types of interference were introduced: 1. Electrocautery interference: A 100 Hz sinusoidal burst (amplitude 1.5) with additive noise (σ = 0.45) was injected during seconds 25–27. 2. Lead-off event: The ECG signal was replaced by low-amplitude noise (σ = 0.01) during seconds 90–95 to simulate electrode detachment. 3.3 Processing Pipeline The complete processing chain consisted of: 1. Band-pass filtering (0.5–40 Hz, 4th-order Butterworth, zero-phase). 2. R-peak detection with adaptive thresholding. 3. Sliding-window feature extraction (20 s windows, 15 s step). 4. Rule-based classification (AWAKE, SLEEP, UNCERTAIN, ALARM). 3.4 Validation Metrics Two validation approaches were employed: • FFT-based interference suppression: Attenuation of the 100 Hz component was measured before and after filtering. The requirement threshold was set at 20 dB (IEC 60601-1-2 EMC standard). • Classification accuracy: Classifier output was compared"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#15",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "• FFT-based interference suppression: Attenuation of the 100 Hz component was measured before and after filtering. The requirement threshold was set at 20 dB (IEC 60601-1-2 EMC standard). • Classification accuracy: Classifier output was compared against time-based ground truth (0–60 s = AWAKE, 60–85 s = SLEEP). Windows overlapping the lead-off event (90–95 s) were excluded from accuracy calculation, as lead-off represents a technical alarm rather than a misclassification. Results 4.1 Filter Performance The band-pass filter achieved 31.4 dB attenuation at 100 Hz—well above the 20 dB requirement. Figure 1 shows the first 20 seconds of raw (blue) versus filtered (orange) ECG during the awake phase. The sharp R-peaks and P/T waves come through clearly, while high-frequency noise gets visibly suppressed. Figure 2 zooms into the 2–4 second window and highlights how well morphology is preserved: P waves, QRS complexes,"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#16",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "phase. The sharp R-peaks and P/T waves come through clearly, while high-frequency noise gets visibly suppressed. Figure 2 zooms into the 2–4 second window and highlights how well morphology is preserved: P waves, QRS complexes, and T waves remain undistorted. 4.2 R-Peak Detection and Heart Rate Estimation The algorithm successfully identified 135 R-peaks across the 120-second recording. Figure 3 displays R-peak markers (red triangles) overlaid on the filtered ECG around the awake-to-sleep transition (50–70 s). The vertical dashed green line at 60 s marks the transition point. Visual inspection confirms consistent peak detection with no false positives or missed beats in regions where signal quality was adequate. 4.3 State Classification Table 1 summarizes classification performance. We generated seven analysis windows—four during the awake phase and three during the sleep phase. The classifier correctly labeled all of them: • Awake phase"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#17",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "was adequate. 4.3 State Classification Table 1 summarizes classification performance. We generated seven analysis windows—four during the awake phase and three during the sleep phase. The classifier correctly labeled all of them: • Awake phase accuracy: 100% (4/4 windows) • Sleep phase accuracy: 100% (3/3 windows) • Overall accuracy: 100% (7/7 windows) No UNCERTAIN states popped up. The lead-off event at 90–95 s overlapped with the final window, which the variance-based check correctly identified, but we didn’t count it as a classification error. ECG Processing for Anaesthesia Monitoring A P REPRINT Table 1: Classification results and validation metrics Metric FFT attenuation at 100 Hz Overall classification accuracy Awake phase accuracy Sleep phase accuracy AWAKE windows detected SLEEP windows detected UNCERTAIN windows ALARM windows Total R-peaks detected Value 31.4 dB 100% 100% (4/4) 100% (3/3) 0* *Lead-off shown in plot but"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#18",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "classification accuracy Awake phase accuracy Sleep phase accuracy AWAKE windows detected SLEEP windows detected UNCERTAIN windows ALARM windows Total R-peaks detected Value 31.4 dB 100% 100% (4/4) 100% (3/3) 0* *Lead-off shown in plot but not counted as classification error Figure 4 presents a timeline visualization of classifier output. Green bars represent AWAKE states (0–60 s), blue bars represent SLEEP states (60–85 s), and a translucent red band highlights the simulated lead-off period (90–95 s). The vertical dashed line at 60 s marks the physiological transition. The classifier responds immediately to the change in heart rate, demonstrating real-time adaptability. Figure 1: Raw (blue) and filtered (orange) ECG for the first 20 seconds of the awake phase. The band-pass filter (0.5–40 Hz) removes baseline drift and high-frequency noise while preserving P, QRS, and T wave morphology. ECG Processing for Anaesthesia Monitoring"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#19",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "(orange) ECG for the first 20 seconds of the awake phase. The band-pass filter (0.5–40 Hz) removes baseline drift and high-frequency noise while preserving P, QRS, and T wave morphology. ECG Processing for Anaesthesia Monitoring A P REPRINT Figure 2: Zoomed view (2–4 s) highlighting individual cardiac cycles. P waves, QRS complexes, and T waves are clearly visible in both raw and filtered signals. Figure 3: R-peak detection (red triangles) around the awake-to-sleep transition at 60 s (dashed green line). The algorithm reliably detects peaks in both high-HR (awake) and low-HR (sleep) segments. Figure 4: State classification timeline. Green bars indicate AWAKE classification, blue bars indicate SLEEP, and the translucent red band (90–95 s) represents the simulated lead-off event. The classifier correctly transitions at 60 s. ECG Processing for Anaesthesia Monitoring A P REPRINT Discussion This simulation demonstrates a complete"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#20",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "indicate SLEEP, and the translucent red band (90–95 s) represents the simulated lead-off event. The classifier correctly transitions at 60 s. ECG Processing for Anaesthesia Monitoring A P REPRINT Discussion This simulation demonstrates a complete ECG processing pipeline that works well for anaesthesia monitoring education and algorithm prototyping. The system successfully separates awake and sleep states under controlled synthetic conditions and handles electrocautery interference robustly. The 100% classification accuracy reflects how simplified the synthetic data is: fixed heart rates with minimal variability, clean waveform morphology, and deterministic state transitions. That said, there are limitations we need to acknowledge. Real ECG signals are far messier. They show substantial variation between patients and even within the same patient due to autonomic regulation, respiration, baroreceptor reflexes, and drug effects. Our fixed-HR synthetic model doesn’t capture any of that. Second, the rule-based classifier uses"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#21",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "show substantial variation between patients and even within the same patient due to autonomic regulation, respiration, baroreceptor reflexes, and drug effects. Our fixed-HR synthetic model doesn’t capture any of that. Second, the rule-based classifier uses manually chosen thresholds tailored to this specific dataset. For clinical deployment, you’d need population-based threshold calibration—or better yet, machine-learning approaches. Third, lead-off detection via signal variance is pretty crude. Commercial monitors implement impedance-based electrode contact sensing per IEC 60601-1-8 (4). Fourth, we left out other common artefacts like motion artefacts, respiratory modulation, and baseline drift from surgical diathermy. Still, this simulation offers a transparent and pedagogically useful framework for understanding core signal-processing concepts: filtering, peak detection, time-domain feature extraction, and classification logic. There are several ways to extend this work: (1) integrate realistic HRV models with respiratory sinus arrhythmia, (2) add more disturbance types (motion,"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#22",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "core signal-processing concepts: filtering, peak detection, time-domain feature extraction, and classification logic. There are several ways to extend this work: (1) integrate realistic HRV models with respiratory sinus arrhythmia, (2) add more disturbance types (motion, baseline wander, multiple lead-off patterns), (3) implement advanced detection algorithms like Pan-Tompkins or wavelet transforms, (4) compute frequency-domain HRV metrics such as LF/HF ratio, and (5) validate against real clinical datasets like PhysioNet’s MIMIC-III waveform database (6). The modular Python implementation makes experimentation straightforward. You can tweak heart rates, noise levels, filter parameters, and classification thresholds interactively. This makes it a solid tool for teaching signal-processing principles, testing algorithm robustness, and exploring trade-offs between noise rejection and waveform fidelity. From a systems-engineering perspective, this work highlights the importance of requirements-driven design. The 0.5–40 Hz bandwidth and FFT validation directly implement IEC 60601-2-27 requirements. The lead-off"
+ },
+ {
+  "id": "ECG_Anaesthesia_Monitoring_Report#23",
+  "title": "ECG anaesthesia monitoring (report)",
+  "href": "/ECG_Anaesthesia_Monitoring_Report.pdf",
+  "text": "and exploring trade-offs between noise rejection and waveform fidelity. From a systems-engineering perspective, this work highlights the importance of requirements-driven design. The 0.5–40 Hz bandwidth and FFT validation directly implement IEC 60601-2-27 requirements. The lead-off simulation addresses IEC 60601-1-8 alarm system requirements. These standards ensure medical devices meet minimum safety and performance benchmarks, reducing the risk of patient harm as outlined in ISO 14971 risk-management processes (5). Usage of AI ChatGPT and Claude were used to create initial Python code structures and syntax troubleshooting for ECG filtering and R-peak detection. All AI-generated code was manually reviewed, debugged, and significantly adapted to ensure technical accuracy and compliance with my system architecture. Perplexity AI was used to conduct research and identify international medical standards such as IEC 60601-2-27 and IEC 60601-1-8. Importantly, the core logic and decision-making engine-state classification thresholds-form original intellectual"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#1",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "Contribution report for project ALIA-DELIVERY Implementation of MQTT Communication System and User Interface for Autonomous Robot Delivery Sarath Adukkadukkam, s.adukkadukkam@oth-aw.de1 OTH Amberg-Weiden, Study programme \"Industrie 4.0 Informatik\" Report written on July 4, 2025 Abstract The project ALIA-DELIVERY targets to create a digital twin simulation environment for autonomous robot delivery systems in the ALIA care facility. The system enables robots to navigate between rooms and deliver medications, cafe orders, and various supplies to residents and staff members. This report outlines the delivery of three important system elements: MQTT client integration for real-time messaging between the frontend UI and the robot systems, an interactive and re-usable user interface with dynamic room selection, and the ability to dynamically override commands to accommodate prioritized task management. I was initially assigned to pathfinding implementation, but the task was later reassigned to other team members after"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#2",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "interface with dynamic room selection, and the ability to dynamically override commands to accommodate prioritized task management. I was initially assigned to pathfinding implementation, but the task was later reassigned to other team members after initial exploration did not yield a complete solution, leading to the focus shift toward communication and interface development components. The results show that we were able to smoothly integrate generic messaging protocols with pathfinding algorithms, producing seamless room-to-room commands with response times of one second or less, and an ability to shift tasks at will. Keywords: MQTT communication, user interface design, autonomous robotics, digital twin simulation, pathfinding 1. Material was a completely new task that would allow us to optimize the user experience completely. We focused on visual curiosity through animated particle background, attention-drawing grids for room selection, and responsive design. The UI feedback mechanism"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#3",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "a completely new task that would allow us to optimize the user experience completely. We focused on visual curiosity through animated particle background, attention-drawing grids for room selection, and responsive design. The UI feedback mechanism provided loading states and success indicators that engaged the user, while the glassmorphic design approach enabled us to produce a modern, professional rendering that would be appropriate in a care facility context. The dynamic command override system was built using thread safe programming patterns. A command lock mechanism ensures an atomic operation while delivering new MQTT messages to process when the robot is performing an existing command. The architecture of the system supports immediate task-switching by breaking current pathfinding execution and recalculating the routes to a new destination employing real-time dynamic path planning with an updating coordinate mechanism for any of the robots commands. The"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#4",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "the system supports immediate task-switching by breaking current pathfinding execution and recalculating the routes to a new destination employing real-time dynamic path planning with an updating coordinate mechanism for any of the robots commands. The implementation of the project relied on multiple technologies and tools to meet the project goals. The main simulation environment was Webots, which had the ALIA care facility floor plan as a 3D digital twin. The communication infrastructure relied on Paho MQTT Python library for real-time messaging with each of the system’s components. AI tools like Claude.ai and ChatGPT were used to assist with coding, especially with the implementation of logic, and solving issues that arose during implementation. The user interface would be built with the latest and modern web technologies of HTML5, CSS3, JavaScript. The pathfinding component of this project relied on the A* search"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#5",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "and solving issues that arose during implementation. The user interface would be built with the latest and modern web technologies of HTML5, CSS3, JavaScript. The pathfinding component of this project relied on the A* search algorithm extended from Python’s built-in heapq library to form and use priority queues. The developers used the Webots Python API to control robot actuators and sensors in the simulation environment. Python had threading capabilities which enabled MQTT communication and the robot’s main control loop to run simultaneously. Initial pathfinding exploration involved research into dynamic pathfinding algorithms as an alternative to grid-based mapping approaches, though this did not result in a complete solution and was subsequently handled by other team members. The Pioneer 3-DX robot platform was initially considered for implementation but proved to be suboptimal for the specific requirements of this care facility delivery system."
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#6",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "complete solution and was subsequently handled by other team members. The Pioneer 3-DX robot platform was initially considered for implementation but proved to be suboptimal for the specific requirements of this care facility delivery system. Project documentation and technical specifications from LUCE Stiftung enabled contextual background on the care facility, and, use case scenarios. The coordinate mapping system was calibrated (with the physical world) using actual measurements generated from the digital twin environment. The integration of service robots in healthcare environments follows established research frameworks for autonomous mobile robot applications. 3. Implementation Aspects 3.1. MQTT Client Integration The MQTT communication structure was implemented as a threaded service running in parallel with the main robot control loop. The client connects to the MQTT broker through host parameters, port parameters, and topic subscriptions established by the client. The command parsing logic in"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#7",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "threaded service running in parallel with the main robot control loop. The client connects to the MQTT broker through host parameters, port parameters, and topic subscriptions established by the client. The command parsing logic in the system can extract room identifiers from the standardized message formats such as \"go to room101\". This implementation utilized the reliability based on the MQTT protocol as applied in IoT applications, and was particularly well suited for real time robotics communications systems.. 2. Method The development was based on a modular architecture style, with communication, UI, and control logic treated as separate components that were integrated together. I was initially assigned the task of implementing the pathfinding, but my early attempts did not satisfactorily produce a solution, so I handed the work to other team members. I then turned my attention to the MQTT client"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#8",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "assigned the task of implementing the pathfinding, but my early attempts did not satisfactorily produce a solution, so I handed the work to other team members. I then turned my attention to the MQTT client implementation, which established a publish-subscribe pattern where the front-end UI publishes a \"room-selection command\" to a specific topic, which is subscribed to by the robot controller that receives and processes these commands in real-time. In regards to re-designing the UI, this def on_message ( client , userdata , msg ) : global new_command try : command = msg . payload . decode () print ( f \" Received MQTT command : { command } \") with command_lock : new_command = command except Exception as e : print ( f \" Error processing MQTT message : { e}\") def e x t r a c t"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#9",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": ": { command } \") with command_lock : new_command = command except Exception as e : print ( f \" Error processing MQTT message : { e}\") def e x t r a c t _ r o o m _ f r o m _ c o m m a n d ( command ) : if command . startswith ( \" go_to_room_ \" ) : room_id = command . replace ( \" go_to_room_ \" , \"\") Implementation of MQTT Communication System and User Interface for Autonomous Robot Delivery return f \" Room { room_id . zfill (3) } \" return None } Code 1. MQTT message processing implementation. The implementation includes comprehensive error handling and connection management. Automatic reconnection logic ensures system resilience in case of network interruptions. The modular design allows easy integration with various MQTT broker"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#10",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "1. MQTT message processing implementation. The implementation includes comprehensive error handling and connection management. Automatic reconnection logic ensures system resilience in case of network interruptions. The modular design allows easy integration with various MQTT broker configurations and supports both simulated and production environments. 3.2. User Interface Enhancement Sarath Adukkadukkam # ===== MQTT COMMAND PROCESSING WITH DYNAMIC TASK SWITCHING ===== with command_lock : if new_command : print ( f \" \\ n === Processing MQTT Command : { new_command } === \" ) room_name = e x t r a c t _ r o o m _ f r o m _ c o m m a n d ( new_command ) if room_name : print ( f \" Extracted room : { room_name } \" ) Redesigning the user interface was important to create a user-friendly and visually attractive"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#11",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "m a n d ( new_command ) if room_name : print ( f \" Extracted room : { room_name } \" ) Redesigning the user interface was important to create a user-friendly and visually attractive environment for making room selections and sending commands. The design allows for the original room cards to be presented in a grid view that provides user interaction by way of loading states and, animations through hover states. There were animated particle backgrounds created through HTML5 Canvas with JS animation frames. The room selection user interface has all of the destination selections presented as clickable cards, with appropriate noticeable state visual encoding (selected), loading, and successfully confirmed transmission, which was visually evident. The CSS transitions and transformations support responsiveness and usability, which also support web-accessibility. # Plan new path from current position new_waypoints = p l"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#12",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "encoding (selected), loading, and successfully confirmed transmission, which was visually evident. The CSS transitions and transformations support responsiveness and usability, which also support web-accessibility. # Plan new path from current position new_waypoints = p l a n _ p a t h _ t o _ r o o m ( room_name , current_pose ) if new_waypoints : # IMMEDIATE MOVEMENT INTERRUPTION left_motor . setVelocity (0.0) right_motor . setVelocity (0.0) # MISSION OVERRIDE AND STATE RESET WAYPOINTS = new_waypoints current_waypoint_index = 0 robot_state = \" IDLE \" print ( f \" New mission started : Going to { room_name } with { len ( WAYPOINTS ) } waypoints \" ) else : print ( f \" Failed to plan path to { room_name } \" ) new_command = None command # Clear processed Code 2. Dynamic command override implementation with"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#13",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": ") } waypoints \" ) else : print ( f \" Failed to plan path to { room_name } \" ) new_command = None command # Clear processed Code 2. Dynamic command override implementation with thread-safe processing and immediate task switching capabilities. The design is based on a thread safe command processing mechanism that stores incoming MQTT messages in a global variable that is guarded by a threading lock. The robot checks for new commands on every iteration of the control loop and processes them in an atomic operation which allows the robot to start in a new state if it has received a new room command. When the robot receives a new room command, it stops all motor motion, computes a new best path from the robots current location to the new destination, and resets the state machine to"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#14",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "room command. When the robot receives a new room command, it stops all motor motion, computes a new best path from the robots current location to the new destination, and resets the state machine to start the new navigation process. This command processing mechanism eliminates the robots wait for task to complete before accepting new commands to further enhance the responsiveness of the system and the user experience in the dynamic nature of the care facility environments. The A* pathfinding algorithm provides routing logic to ensure optimal routing for the mobile robots navigation plan within the structured environment of indoor locations. Figure 1. Website landing page showing the enhanced user interface with interactive room selection grid and modern glassmorphic design elements. There are also operational feedbacks supporting loading spinners and a success indication for when commands are sent via MQTT,"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#15",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "page showing the enhanced user interface with interactive room selection grid and modern glassmorphic design elements. There are also operational feedbacks supporting loading spinners and a success indication for when commands are sent via MQTT, which is beneficial for the user to know the command they issued has been sent. The final design needs to be responsive and mobilefriendly, so that the appropriate layouts are used for the desktop and mobile break points and touch targets. 3.3. Dynamic Room Update Handling The dynamic command override is an important capability for realworld deployments where task priorities can instantly shift from low to high. This implementation uses thread-safe programming methods to maintain data integrity as it processes command updates. Upon receipt of new room selection commands through MQTT, the active robot movement is first halted immediately by the robot’s system by setting"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#16",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "thread-safe programming methods to maintain data integrity as it processes command updates. Upon receipt of new room selection commands through MQTT, the active robot movement is first halted immediately by the robot’s system by setting motor velocities to 0. The path is updated using the original A* path planning algorithm with the robot’s current position being the new starting point. Using the new waypoint list it overwrites the previous mission and resets the robot’s state machine to start the navigation procedure toward the new designated destination. 4. Testing The implementation was fully tested in multiple scenarios to validate functionality and performance characteristics. MQTT communication testing verified message delivery reliability, command parsing accuracy, and system response times under various network conditions. The testing framework followed established protocols for the evaluation of autonomous mobile robot systems in healthcare logistics applications. 2–3 Sarath"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#17",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "verified message delivery reliability, command parsing accuracy, and system response times under various network conditions. The testing framework followed established protocols for the evaluation of autonomous mobile robot systems in healthcare logistics applications. 2–3 Sarath Adukkadukkam Implementation of MQTT Communication System and User Interface for Autonomous Robot Delivery that are suitable for deployment in a production setting, and the new User Interface can be used within the care facility in an aesthetically pleasing and intuitive manner. The built-in dynamic command override can satisfy genuine realworld needs where task urgency frequently changes and takes precedence over other tasks in care settings. The modular framework from the existing implementation allows for further developments, such as multi-robot coordination, command queue systems, and/or priority management algorithms, using existing knowledge in the field of service robots in health care.. Future opportunities for growth include creating"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#18",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "existing implementation allows for further developments, such as multi-robot coordination, command queue systems, and/or priority management algorithms, using existing knowledge in the field of service robots in health care.. Future opportunities for growth include creating bidirectional MQTT communication for real-time status updates on the robot, building an integration to facility management system for automated task scheduling, and designing a more advanced user interface for users with potentially several robots working together. We intend to implement security on the MQTT communication, and to evolve the system to run on a backend database as well. In conclusion, the framework developed through this implementation offers a platform for scalable, next-generation autonomous delivery systems in care facility environments. We also view this as contributing to the wider aspirations of the ALIA project as a whole, to improve quality of care through innovative technology. Overall,"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#19",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "scalable, next-generation autonomous delivery systems in care facility environments. We also view this as contributing to the wider aspirations of the ALIA project as a whole, to improve quality of care through innovative technology. Overall, the application of MQTT communication protocol with A* pathfinding, is an illustration of the potential benefits of using existing, already established communication protocols and using this to inform relevant robotics, in an emerging healthcare logistics landscape. Figure 2. VSCode terminal output showing MQTT broker connection status, client connections, and message handling with automatic reconnection capabilities. UI testing was used to look for responsiveness of actions, visual presentation, and accessibility concerns across devices and browsers. Load testing involved performed as many actions simultaneously as possible to select rooms, and see if the system could rapidly change tasks. Then, integration testing allowed us to test across an"
+ },
+ {
+  "id": "ALIA_Delivery_MQTT_Report#20",
+  "title": "ALIA Delivery robots, MQTT and UI (report)",
+  "href": "/ALIA_Delivery_MQTT_Report.pdf",
+  "text": "across devices and browsers. Load testing involved performed as many actions simultaneously as possible to select rooms, and see if the system could rapidly change tasks. Then, integration testing allowed us to test across an entire workflow, from UI interaction, to communication using MQTT, and navigation of robots. For test scenarios, we considered executing an interaction of selecting multiple rooms in sequential order, rapidly changing commands while the robot is moving, and considering what would happen if the system had to recover from a lost connection. 6. Appendix 6.1. Code Repository The complete source code for this project is available in the GitLab repository: • Repository: ALIA Delivery • URL: https://gitlab.com/marshal.sebastine/alia-delivery/-/tree /main Figure 3. Webots console displaying real-time robot navigation feedback, including MQTT command processing, pathfinding calculations, and waypoint-based movement execution."
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#1",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "Sarath Adukkadukkam M.Sc. Künstliche Intelligenz Nürnberg, Deutschland | E-Mail: adukkadukkamsarath@gmail.com Portfolio: sarathadukkadukkam.vercel.app | LinkedIn: linkedin.com/in/sarath-adukkadukkam | GitHub: github.com/SarathA9 Kurzprofil Masterstudent der Künstlichen Intelligenz (M.Sc.) an der OTH Amberg-Weiden mit Schwerpunkt auf Machine Learning, Sicherheit von LLMs, Robotik und Signalverarbeitung. Ich entwickle Lösungen von den Daten und Modellen bis zur fertigen Weboberfläche. Studienprojekte zur Abwehr von RAG Backdoors, autonomer Roboternavigation und Indoor Lokalisierung sowie mehrere ausgelieferte Projekte in Machine Learning und Full Stack Entwicklung. Ich suche eine Stelle als Werkstudent oder Praktikant im Bereich KI oder Softwareentwicklung. Berufserfahrung Freiberuflicher Softwareentwickler Selbstständig, Kasaragod, Indien (remote) aktuell • Entwicklung von Full Stack Webanwendungen für Kunden mit React, Node.js und MySQL • Konzeption skalierbarer und sicherer Architekturen mit Fokus auf Performance und User Experience • Agile Projektbegleitung von der Anforderungsanalyse bis zum Deployment Praktikant Software Engineering Talisma Corporation Pvt. Ltd, Bangalore, Indien 07/2024 bis"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#2",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "und MySQL • Konzeption skalierbarer und sicherer Architekturen mit Fokus auf Performance und User Experience • Agile Projektbegleitung von der Anforderungsanalyse bis zum Deployment Praktikant Software Engineering Talisma Corporation Pvt. Ltd, Bangalore, Indien 07/2024 bis 02/2025 • Entwicklung von Webanwendungen im Engineering Team • Implementierung sicherer Authentifizierung und Autorisierung • Unterstützung bei Datenbankverwaltung, Systemintegration sowie Echtzeitdaten und Analysefunktionen • Umsetzung responsiver und benutzerfreundlicher Oberflächen Praktikant Softwareentwicklung Codelab Systems, Mangalore, Indien 01/2024 bis 05/2024 • Entwicklung dynamischer Anwendungen mit React.js und Ausbau der API Integration • Mitarbeit an responsiven Webdesigns für E-Commerce • Fehleranalyse und technische Problemlösung Forschung und Studienprojekte Abwehr von Backdoors in RAG Systemen (RFC) OTH Amberg-Weiden, Modul AI Security and Privacy, Forschungsbericht, 06/2026 Untersuchung einer doppelten Backdoor Bedrohung für Retrieval-Augmented Generation: ein per QLoRA manipuliertes LLaMA-3-8B und ein vergifteter Retrieval Korpus (FAISS, 2.067 Passagen). Entwurf von Rank Faithfulness"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#3",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "(RFC) OTH Amberg-Weiden, Modul AI Security and Privacy, Forschungsbericht, 06/2026 Untersuchung einer doppelten Backdoor Bedrohung für Retrieval-Augmented Generation: ein per QLoRA manipuliertes LLaMA-3-8B und ein vergifteter Retrieval Korpus (FAISS, 2.067 Passagen). Entwurf von Rank Faithfulness Consistency (RFC), einer Abwehr zur Abfragezeit. RFC erkennt einzelne vergiftete Dokumente mit einer AUC von 0,99 bis 1,00 und senkt die Angriffsrate beim Conflict Angriff von 21 % auf 1,4 % (500 Fragen). Tests gegen einen adaptiven Angreifer zeigen die Grenzen der Methode und dass sie die Filterung beim Indexieren sinnvoll ergänzt. Technologien: Python, PyTorch, LLaMA-3, QLoRA, FAISS, Sentence-Transformers, scikit-learn Machine Learning Challenge: Klassifikation und Regelrekonstruktion OTH Amberg-Weiden, Modul Machine Learning, Prüfungsprojekt, 06/2026 Teil 1: Klassifikation mit drei Klassen (7.500 Zeilen, 70 Merkmale), bei der Standardmodelle bei etwa 0,38 Genauigkeit stagnieren. Erkenntnis: Die Zielregel ist permutationsinvariant. Sortierte Werte, ECDF Merkmale und ExtraTrees heben die Genauigkeit"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#4",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "Learning, Prüfungsprojekt, 06/2026 Teil 1: Klassifikation mit drei Klassen (7.500 Zeilen, 70 Merkmale), bei der Standardmodelle bei etwa 0,38 Genauigkeit stagnieren. Erkenntnis: Die Zielregel ist permutationsinvariant. Sortierte Werte, ECDF Merkmale und ExtraTrees heben die Genauigkeit in fünffacher Kreuzvalidierung auf 0,525 (Zufall 0,333). Teil 2: Exakte Rekonstruktion der regelbasierten Zielgröße durch Strukturanalyse, umgesetzt in einer domänenspezifischen Sprache (R² = 1,0). Alle Werte kreuzvalidiert und ohne Data Leakage. Technologien: Python, scikit-learn, XGBoost, NumPy, pandas Autonome Navigation im Labyrinth mit dem Husarion RosBot OTH Amberg-Weiden, Robotikprojekt, 10/2026 Vollautonome Navigation durch fünf unbekannte Labyrinthe zu einer blauen und dann einer gelben Säule, nur mit Bordsensoren. Mehrschichtige Occupancy Grid Karte aus Lidar, Tiefenkamera und Bodenfarbe, Scan Matching zur Lokalisierung, A* Pfadplanung, Pure Pursuit Regelung und Erkennung schwebender Wände. Drei Parameterprofile lösen alle fünf Labyrinthe ohne Befahren verbotener Flächen, das schnellste in 277 Sekunden Gesamtzeit. Technologien:"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#5",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "aus Lidar, Tiefenkamera und Bodenfarbe, Scan Matching zur Lokalisierung, A* Pfadplanung, Pure Pursuit Regelung und Erkennung schwebender Wände. Drei Parameterprofile lösen alle fünf Labyrinthe ohne Befahren verbotener Flächen, das schnellste in 277 Sekunden Gesamtzeit. Technologien: Python, NumPy, Webots, Lidar, RGB-D Kamera, A* EMI Indoor Navigation mit Partikelfilter (Teamprojekt) OTH Amberg-Weiden, Team mit drei Personen, 07/2026 Rekonstruktion von Laufwegen im zweistöckigen EMI Gebäude aus Sensordaten eines Smartphones. Fusion von Schritterkennung (IMU), Blickrichtung (AHRS), BLE Beacons und Grundriss in einem kartenbasierten Partikelfilter. Ergebnis über vier aufgezeichnete Läufe: Etagenerkennung 100 % inklusive Treppenwechsel, mittlerer Positionsfehler an Referenztüren rund 4,3 m (vorher 7,4 m). Eigene Aufgaben unter anderem Datenerhebung, Routenführung und Pfadskizzen. Technologien: Python, NumPy, SciPy, pandas, Jupyter, Sensorfusion ALIA DELIVERY: MQTT Kommunikation und UI für autonome Lieferroboter OTH Amberg-Weiden, Teamprojekt Industrie 4.0, Beitragsbericht, 07/2025 Digital Twin Simulation für Lieferroboter in einer Pflegeeinrichtung. Echtzeit"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#6",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "Routenführung und Pfadskizzen. Technologien: Python, NumPy, SciPy, pandas, Jupyter, Sensorfusion ALIA DELIVERY: MQTT Kommunikation und UI für autonome Lieferroboter OTH Amberg-Weiden, Teamprojekt Industrie 4.0, Beitragsbericht, 07/2025 Digital Twin Simulation für Lieferroboter in einer Pflegeeinrichtung. Echtzeit Messaging über MQTT (Paho) mit automatischer Wiederverbindung, threadsichere Aufgabenumschaltung mit sofortiger A* Neuplanung und eine Reaktionszeit unter einer Sekunde vom UI Befehl bis zur Roboterbewegung. Technologien: Python, Webots, MQTT, A*, HTML5, CSS3, JavaScript EKG Signalverarbeitung für das Monitoring in der Anästhesie OTH Amberg-Weiden, Technischer Bericht, 01/2026 Regelbasierte Klassifikation von wach und narkotisiert mit 100 % Genauigkeit auf synthetischen Daten. Dämpfung der 100 Hz Störung durch Elektrokauter um 31,4 dB. Zero Phase Butterworth Bandpass (0,5 bis 40 Hz), Erkennung der R Zacken und HRV Merkmale (SDNN). Technologien: Python, SciPy, NumPy Weitere Projekte NeuroTrack: KI Plattform für Neurofeedback Echtzeit Neurofeedback auf EEG Basis mit ML gestützter Analyse"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#7",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "Phase Butterworth Bandpass (0,5 bis 40 Hz), Erkennung der R Zacken und HRV Merkmale (SDNN). Technologien: Python, SciPy, NumPy Weitere Projekte NeuroTrack: KI Plattform für Neurofeedback Echtzeit Neurofeedback auf EEG Basis mit ML gestützter Analyse kognitiver Zustände, Live Visualisierung und Datenstreaming über WebSocket. Technologien: React, Node.js, Flask, TensorFlow, WebSocket Smart Traffic Density Estimation Echtzeit Fahrzeugzählung und Schätzung der Verkehrsdichte mit einem per Transfer Learning trainierten YOLOv8 Modell. Evaluierung über Confusion Matrizen und Export nach ONNX. Technologien: Python, YOLOv8, OpenCV, ONNX Nirikshaka: Objekterkennung im Browser Objekterkennung direkt im Browser mit TensorFlow.js und MobileNet, ergänzt um Kontextinformationen aus der Wikipedia API. Live Demo: nirikshaka.vercel.app. Technologien: TensorFlow.js, React, Tailwind CSS, MobileNet E-Learning Hub: Kursplattform Online Marktplatz für Kurse mit Kurskatalog, Warenkorb und Wunschliste, Zahlungen über Stripe, Dashboard für Verkäufer mit Verkaufsanalysen und Authentifizierung per JWT. Technologien: React, MUI, MySQL, Stripe, JWT Mobile Clinic"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#8",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "Tailwind CSS, MobileNet E-Learning Hub: Kursplattform Online Marktplatz für Kurse mit Kurskatalog, Warenkorb und Wunschliste, Zahlungen über Stripe, Dashboard für Verkäufer mit Verkaufsanalysen und Authentifizierung per JWT. Technologien: React, MUI, MySQL, Stripe, JWT Mobile Clinic Software (Abschlussprojekt Bachelor) Patientenmanagement mit elektronischer Akte, Terminplanung und Erinnerungen, Sprechstunden per Telemedizin, rollenbasierte Zugriffsrechte sowie Reporting und Analytics. Technologien: Full Stack Entwicklung, Cloud, EHR, Telemedizin Ausbildung M.Sc. Künstliche Intelligenz (Artificial Intelligence) OTH Amberg-Weiden, Amberg, Studiengang Industrie 4.0 Informatik Bachelor of Computer Applications (BCA) SDM College, Ujire (Mangalore), Indien Höhere Schulbildung (Higher Secondary) CHSS Chattanchal, Kasaragod, Indien seit 2024 2021 bis 2024 2018 bis 2020 Kenntnisse Programmiersprachen: Python, JavaScript, Java, C#, C, SQL, R KI und Machine Learning: PyTorch, TensorFlow, TensorFlow.js, scikit-learn, XGBoost, YOLOv8, OpenCV LLMs und Sicherheit: LLaMA-3, QLoRA, Fine Tuning, RAG, FAISS, Sentence-Transformers, Abwehr von Backdoors und Data Poisoning Robotik und Signalverarbeitung: Webots,"
+ },
+ {
+  "id": "Sarath_Adukkadukkam_Resume#9",
+  "title": "CV (Lebenslauf, German)",
+  "href": "/Sarath_Adukkadukkam_Resume.pdf",
+  "text": "C#, C, SQL, R KI und Machine Learning: PyTorch, TensorFlow, TensorFlow.js, scikit-learn, XGBoost, YOLOv8, OpenCV LLMs und Sicherheit: LLaMA-3, QLoRA, Fine Tuning, RAG, FAISS, Sentence-Transformers, Abwehr von Backdoors und Data Poisoning Robotik und Signalverarbeitung: Webots, Partikelfilter, Occupancy Grids, A*, Sensorfusion (IMU, Lidar, BLE), SciPy Frontend: React, HTML5, CSS3, Tailwind CSS, Bootstrap, MUI, Three.js Backend: Node.js, Express, Flask, ASP.NET, Java Servlets, MVC, JWT, Stripe Datenbanken: MySQL, MongoDB, Firebase Tools und Cloud: Git, GitHub, Jupyter, Postman, Oracle Cloud, MQTT Sprachen Englisch: verhandlungssicher (C1) | Deutsch: Grundkenntnisse (A2) | Malayalam: Muttersprache"
+ }
+]
