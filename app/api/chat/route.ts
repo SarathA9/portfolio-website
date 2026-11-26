@@ -10,7 +10,7 @@
 // (set GROQ_API_KEY in Vercel). Without a key it falls back to an extractive answer
 // built from the retrieved passages, so the chat always works.
 
-import { retrieve, overview, tokens, idf, type Retrieved } from "@/lib/rag/retrieve";
+import { retrieve, overview, educationSet, tokens, idf, type Retrieved } from "@/lib/rag/retrieve";
 import { profile, education, experience, research } from "@/lib/data";
 
 export const runtime = "nodejs";
@@ -131,6 +131,18 @@ function isOverview(q: string) {
   );
 }
 
+function isEducation(q: string) {
+  return /\b(degree|graduat\w*|bachelor\w*|master'?s?|m\.?sc|bca|studies|studying|study|student|university|college|school|education|qualification\w*|abschluss|studium|studiert|hochschule)\b/i.test(q);
+}
+
+function educationAnswer(q: string) {
+  const de = GERMAN.test(q) || /abschluss|studium|studiert/i.test(q);
+  const [msc, bsc] = education;
+  if (de)
+    return `Ja, Sarath hat seinen Bachelor abgeschlossen: ${bsc.degree} am ${bsc.school}, ${bsc.period} [2]. Seinen Master macht er gerade noch: ${msc.degree} an der OTH Amberg-Weiden, ${msc.period.replace("Since", "seit")} [1].`;
+  return `Sarath has completed his bachelor's degree, a ${bsc.degree} at ${bsc.school} (${bsc.period}) [2]. His master's is in progress: he has been studying for an ${msc.degree} at OTH Amberg-Weiden ${msc.period.toLowerCase()} [1].`;
+}
+
 function overviewAnswer(q: string) {
   const de = GERMAN.test(q);
   const r = research[0];
@@ -167,11 +179,16 @@ export async function POST(req: Request) {
     return new Response(body, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
   }
   const broad = isOverview(last.content);
+  const edu = !broad && isEducation(last.content);
 
   // follow-ups ("what about the results?") also use the previous question for retrieval
   const prevUser = [...messages].reverse().find((m, i) => i > 0 && m.role === "user");
   const query = last.content.split(/\s+/).length < 7 && prevUser ? `${last.content} ${prevUser.content}` : last.content;
-  const retrieved = broad ? overview() : retrieve(query, 6);
+  const retrieved = broad
+    ? overview()
+    : edu
+      ? [...educationSet(), ...retrieve(query, 6).filter((r) => !r.id.startsWith("edu:"))].slice(0, 6)
+      : retrieve(query, 6);
   const used = retrieved.filter((d) => !d.flagged);
 
   const enc = new TextEncoder();
@@ -192,8 +209,8 @@ export async function POST(req: Request) {
       });
 
       const fallback = (why?: string) => {
-        send({ type: "token", t: broad ? overviewAnswer(last.content) : extractive(last.content, used) });
-        send({ type: "done", mode: broad ? "overview" : "extractive", note: why });
+        send({ type: "token", t: broad ? overviewAnswer(last.content) : edu ? educationAnswer(last.content) : extractive(last.content, used) });
+        send({ type: "done", mode: broad || edu ? "overview" : "extractive", note: why });
         controller.close();
       };
 
