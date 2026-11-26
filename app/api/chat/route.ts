@@ -23,7 +23,34 @@ const API_KEY = (process.env.GROQ_API_KEY || process.env.LLM_API_KEY || "")
   .replace(/^Bearer\s+/i, "")
   .trim();
 const BASE_URL = (process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/$/, "");
-const MODEL = process.env.LLM_MODEL || "llama-3.3-70b-versatile";
+const MODEL_OVERRIDE = (process.env.LLM_MODEL || "").trim();
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
+// If the preferred model is retired, pick the best one the provider still lists.
+const PREFERENCE = [/gpt-oss-120b/, /qwen.*(3[.\d]*|2\.5).*(27|32|72)b/i, /llama.*(70b|maverick)/i, /gpt-oss-20b/, /qwen/i, /llama/i, /gemma|mistral|kimi|deepseek/i];
+const NOT_CHAT = /whisper|tts|guard|embed|vision-only|playai|orpheus|distil|compound/i;
+
+let resolvedModel: string | null = null;
+async function listModels(): Promise<string[]> {
+  const res = await fetch(`${BASE_URL}/models`, { headers: { Authorization: `Bearer ${API_KEY}` } });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  return (body?.data ?? []).map((m: { id: string }) => m.id).filter((id: string) => !NOT_CHAT.test(id));
+}
+async function pickModel(): Promise<string> {
+  const ids = await listModels();
+  for (const re of PREFERENCE) {
+    const hit = ids.find((id) => re.test(id));
+    if (hit) return hit;
+  }
+  return ids[0] ?? DEFAULT_MODEL;
+}
+async function currentModel(forceRefresh = false): Promise<string> {
+  if (MODEL_OVERRIDE && !forceRefresh) return MODEL_OVERRIDE;
+  if (!resolvedModel || forceRefresh) resolvedModel = forceRefresh ? await pickModel() : DEFAULT_MODEL;
+  return resolvedModel;
+}
+const isModelError = (status: number, text: string) => status === 404 || (status === 400 && /model/i.test(text) && /(not exist|not found|decommission|deprecat)/i.test(text));
+const modelParams = (m: string) => (/gpt-oss/.test(m) ? { reasoning_effort: "low" } : {});
 
 const MAX_INPUT = 600;
 const MAX_TURNS = 8;
@@ -222,25 +249,36 @@ export async function POST(req: Request) {
       if (!API_KEY) return fallback("no-key");
 
       try {
-        const res = await fetch(`${BASE_URL}/chat/completions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
-          body: JSON.stringify({
-            model: MODEL,
-            stream: true,
-            temperature: 0.2,
-            max_tokens: 700,
-            messages: [
-              { role: "system", content: SYSTEM },
-              ...messages.slice(0, -1),
-              {
-                role: "user",
-                content: `Context passages:\n\n${used.length ? contextBlock(used) : "(no relevant passages found)"}\n\nQuestion: ${last.content}`,
-              },
-            ],
-          }),
-          signal: req.signal,
-        });
+        const ask = (model: string) =>
+          fetch(`${BASE_URL}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+            body: JSON.stringify({
+              model,
+              ...modelParams(model),
+              stream: true,
+              temperature: 0.3,
+              max_tokens: 1200,
+              messages: [
+                { role: "system", content: SYSTEM },
+                ...messages.slice(0, -1),
+                {
+                  role: "user",
+                  content: `Context passages:\n\n${used.length ? contextBlock(used) : "(no relevant passages found)"}\n\nQuestion: ${last.content}`,
+                },
+              ],
+            }),
+            signal: req.signal,
+          });
+        let res = await ask(await currentModel());
+        if (!res.ok) {
+          const detail = await res.clone().text().catch(() => "");
+          if (isModelError(res.status, detail)) {
+            // the model was retired: switch to the best model the provider still offers
+            console.error(`[chat] model unavailable (${detail.slice(0, 160)}), re-selecting`);
+            res = await ask(await currentModel(true));
+          }
+        }
         if (!res.ok || !res.body) {
           const detail = await res.text().catch(() => "");
           console.error(`[chat] LLM request failed: ${res.status} ${detail.slice(0, 300)}`);
@@ -289,7 +327,7 @@ export async function GET() {
     keyConfigured: Boolean(API_KEY),
     keyLooksLikeGroq: API_KEY.startsWith("gsk_"),
     keyLength: API_KEY.length,
-    model: MODEL,
+    model: MODEL_OVERRIDE || resolvedModel || DEFAULT_MODEL,
     endpoint: BASE_URL,
   };
   if (!API_KEY) {
@@ -300,11 +338,20 @@ export async function GET() {
     });
   }
   try {
-    const res = await fetch(`${BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
-    });
+    const test = (model: string) =>
+      fetch(`${BASE_URL}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+        body: JSON.stringify({ model, ...modelParams(model), max_tokens: 16, messages: [{ role: "user", content: "ping" }] }),
+      });
+    let model = await currentModel();
+    let res = await test(model);
+    if (!res.ok && isModelError(res.status, await res.clone().text().catch(() => ""))) {
+      model = await currentModel(true);
+      res = await test(model);
+    }
+    info.model = model;
+    info.availableModels = await listModels();
     const body = await res.json().catch(() => ({}));
     const message = body?.error?.message as string | undefined;
     return Response.json({

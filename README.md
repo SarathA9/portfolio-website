@@ -79,5 +79,5 @@ A retrieval-augmented chat about Sarath, in `components/ChatWidget.tsx` and `app
 1. Create a free API key at https://console.groq.com/keys
 2. In Vercel: Project → Settings → Environment Variables → add `GROQ_API_KEY`, then redeploy.
 
-Optional: `LLM_MODEL` (default `llama-3.3-70b-versatile`) and `LLM_BASE_URL` for another OpenAI-compatible provider.
+Optional: `LLM_MODEL` (default `openai/gpt-oss-120b`; if a model is retired the chat picks the best one Groq still lists) and `LLM_BASE_URL` for another OpenAI-compatible provider.
 Without a key the chat still works and answers with the most relevant quoted passages.
