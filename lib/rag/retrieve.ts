@@ -66,6 +66,7 @@ const STOP = new Set(
     "a an and are as at be but by can do does did for from has have he his how i in into is it its of on or " +
     "she so than that the their them then there these they this to was were what when where which who why will with " +
     "you your about tell me sarath sarath's adukkadukkam his him does did any some much many " +
+    "know knows known done ever use used using familiar can could would please give list explain describe show has have had " +
     "der die das und ist ein eine zu den dem des mit von im für auf als bei wie was hat er sie es"
   ).split(" ")
 );
@@ -226,4 +227,16 @@ export function retrieve(query: string, k = 6): Retrieved[] {
       flagged: !passages[r.i].trusted && strong >= 3 && (rfc[j] - mean) / sd > 2.3 && r.score / top > 0.75,
     }))
     .slice(0, k);
+}
+
+/** Broad questions ("who is Sarath?") have no specific keywords: answer from an overview set. */
+export function overview(): Retrieved[] {
+  // fixed order, so the overview answer's citations line up:
+  // [1] profile [2] current degree [3] freelance work [4][5] internships [6] main research
+  const ids = ["profile", `edu:${education[0].degree}`, ...experience.slice(0, 3).map((e) => `exp:${e.company}`), `research:${research[0].title}`];
+  return ids
+    .map((id) => passages.find((p) => p.id === id))
+    .filter((p): p is Passage => !!p)
+    .slice(0, 6)
+    .map((p, i) => ({ ...p, score: 1 - i * 0.08, rfc: 0, flagged: false }));
 }
