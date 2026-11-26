@@ -61,3 +61,23 @@ lib/search.ts      # the little retriever behind "Ask this portfolio" (synonyms 
 public/            # photos, résumé, report PDFs
 _old_site_backup/  # your previous vanilla HTML/CSS/JS site
 ```
+
+## "Ask my AI" chat (RAG)
+
+A retrieval-augmented chat about Sarath, in `components/ChatWidget.tsx` and `app/api/chat/route.ts`.
+
+1. **Corpus:** the report PDFs and CV in `public/` are turned into ~140-word passages by
+   `python3 scripts/build_rag_corpus.py` (needs `pdftotext`; re-run after adding or changing a PDF).
+   Site content from `lib/data.ts` is added automatically.
+2. **Retrieval:** Okapi BM25 with stemming, English/German stop words and query expansion (`lib/rag/retrieve.ts`).
+3. **RFC guard:** the Rank-Faithfulness Consistency check from the RFC report runs on the retrieved
+   document passages; a strong outlier is shown as flagged and kept out of the prompt.
+4. **Generation:** streamed from any OpenAI-compatible API, with numbered citations.
+
+### Setup (free)
+
+1. Create a free API key at https://console.groq.com/keys
+2. In Vercel: Project → Settings → Environment Variables → add `GROQ_API_KEY`, then redeploy.
+
+Optional: `LLM_MODEL` (default `llama-3.3-70b-versatile`) and `LLM_BASE_URL` for another OpenAI-compatible provider.
+Without a key the chat still works and answers with the most relevant quoted passages.
