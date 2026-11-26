@@ -12,7 +12,7 @@ import Robot from "./Robot";
  */
 
 type Source = { id: string; title: string; href: string; score: number; rfc: number; flagged: boolean; snippet: string };
-type Msg = { role: "user" | "assistant"; content: string; sources?: Source[]; mode?: string; pending?: boolean; error?: boolean };
+type Msg = { role: "user" | "assistant"; content: string; sources?: Source[]; mode?: string; note?: string; pending?: boolean; error?: boolean };
 
 const SUGGESTIONS = [
   "What is Sarath's RAG backdoor research about?",
@@ -205,7 +205,7 @@ export default function ChatWidget() {
             const ev = JSON.parse(line);
             if (ev.type === "sources") patch((m) => ({ ...m, sources: ev.sources }));
             else if (ev.type === "token") patch((m) => ({ ...m, content: m.content + ev.t }));
-            else if (ev.type === "done") patch((m) => ({ ...m, pending: false, mode: ev.mode }));
+            else if (ev.type === "done") patch((m) => ({ ...m, pending: false, mode: ev.mode, note: ev.note }));
           }
         }
         patch((m) => ({ ...m, pending: false }));
@@ -322,7 +322,18 @@ export default function ChatWidget() {
                     </div>
                   )}
                   {m.mode === "extractive" && !m.pending && (
-                    <p className="msg-note">Quoted directly from the sources (AI writing is offline).</p>
+                    <p className="msg-note">
+                      Quoted directly from the sources.{" "}
+                      {m.note === "no-key"
+                        ? "AI writing is not set up on this deployment."
+                        : m.note === "llm-401"
+                          ? "The AI service rejected the API key."
+                          : m.note === "llm-429"
+                            ? "The AI service is busy; try again in a minute."
+                            : m.note
+                              ? "The AI service is unavailable right now."
+                              : ""}
+                    </p>
                   )}
                   {m.sources && m.sources.length > 0 && !m.pending && (
                     <Trace sources={m.sources} open={hot && hot.msg === i ? hot.n : null} />

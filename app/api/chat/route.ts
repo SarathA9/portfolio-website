@@ -10,15 +10,47 @@
 // (set GROQ_API_KEY in Vercel). Without a key it falls back to an extractive answer
 // built from the retrieved passages, so the chat always works.
 
-import { retrieve, overview, tokens, idf, type Retrieved } from "@/lib/rag/retrieve";
+import { retrieve, overview, educationSet, tokens, idf, type Retrieved } from "@/lib/rag/retrieve";
 import { profile, education, experience, research } from "@/lib/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const API_KEY = process.env.GROQ_API_KEY || process.env.LLM_API_KEY || "";
+// tolerate common paste mistakes: spaces, quotes, or a "Bearer " prefix
+const API_KEY = (process.env.GROQ_API_KEY || process.env.LLM_API_KEY || "")
+  .trim()
+  .replace(/^["']|["']$/g, "")
+  .replace(/^Bearer\s+/i, "")
+  .trim();
 const BASE_URL = (process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/$/, "");
-const MODEL = process.env.LLM_MODEL || "llama-3.3-70b-versatile";
+const MODEL_OVERRIDE = (process.env.LLM_MODEL || "").trim();
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
+// If the preferred model is retired, pick the best one the provider still lists.
+const PREFERENCE = [/gpt-oss-120b/, /qwen.*(3[.\d]*|2\.5).*(27|32|72)b/i, /llama.*(70b|maverick)/i, /gpt-oss-20b/, /qwen/i, /llama/i, /gemma|mistral|kimi|deepseek/i];
+const NOT_CHAT = /whisper|tts|guard|embed|vision-only|playai|orpheus|distil|compound/i;
+
+let resolvedModel: string | null = null;
+async function listModels(): Promise<string[]> {
+  const res = await fetch(`${BASE_URL}/models`, { headers: { Authorization: `Bearer ${API_KEY}` } });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  return (body?.data ?? []).map((m: { id: string }) => m.id).filter((id: string) => !NOT_CHAT.test(id));
+}
+async function pickModel(): Promise<string> {
+  const ids = await listModels();
+  for (const re of PREFERENCE) {
+    const hit = ids.find((id) => re.test(id));
+    if (hit) return hit;
+  }
+  return ids[0] ?? DEFAULT_MODEL;
+}
+async function currentModel(forceRefresh = false): Promise<string> {
+  if (MODEL_OVERRIDE && !forceRefresh) return MODEL_OVERRIDE;
+  if (!resolvedModel || forceRefresh) resolvedModel = forceRefresh ? await pickModel() : DEFAULT_MODEL;
+  return resolvedModel;
+}
+const isModelError = (status: number, text: string) => status === 404 || (status === 400 && /model/i.test(text) && /(not exist|not found|decommission|deprecat)/i.test(text));
+const modelParams = (m: string) => (/gpt-oss/.test(m) ? { reasoning_effort: "low" } : {});
 
 const MAX_INPUT = 600;
 const MAX_TURNS = 8;
@@ -131,6 +163,18 @@ function isOverview(q: string) {
   );
 }
 
+function isEducation(q: string) {
+  return /\b(degree|graduat\w*|bachelor\w*|master'?s?|m\.?sc|bca|studies|studying|study|student|university|college|school|education|qualification\w*|abschluss|studium|studiert|hochschule)\b/i.test(q);
+}
+
+function educationAnswer(q: string) {
+  const de = GERMAN.test(q) || /abschluss|studium|studiert/i.test(q);
+  const [msc, bsc] = education;
+  if (de)
+    return `Ja, Sarath hat seinen Bachelor abgeschlossen: ${bsc.degree} am ${bsc.school}, ${bsc.period} [2]. Seinen Master macht er gerade noch: ${msc.degree} an der OTH Amberg-Weiden, ${msc.period.replace("Since", "seit")} [1].`;
+  return `Sarath has completed his bachelor's degree, a ${bsc.degree} at ${bsc.school} (${bsc.period}) [2]. His master's is in progress: he has been studying for an ${msc.degree} at OTH Amberg-Weiden ${msc.period.toLowerCase()} [1].`;
+}
+
 function overviewAnswer(q: string) {
   const de = GERMAN.test(q);
   const r = research[0];
@@ -167,11 +211,16 @@ export async function POST(req: Request) {
     return new Response(body, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
   }
   const broad = isOverview(last.content);
+  const edu = !broad && isEducation(last.content);
 
   // follow-ups ("what about the results?") also use the previous question for retrieval
   const prevUser = [...messages].reverse().find((m, i) => i > 0 && m.role === "user");
   const query = last.content.split(/\s+/).length < 7 && prevUser ? `${last.content} ${prevUser.content}` : last.content;
-  const retrieved = broad ? overview() : retrieve(query, 6);
+  const retrieved = broad
+    ? overview()
+    : edu
+      ? [...educationSet(), ...retrieve(query, 6).filter((r) => !r.id.startsWith("edu:"))].slice(0, 6)
+      : retrieve(query, 6);
   const used = retrieved.filter((d) => !d.flagged);
 
   const enc = new TextEncoder();
@@ -192,34 +241,49 @@ export async function POST(req: Request) {
       });
 
       const fallback = (why?: string) => {
-        send({ type: "token", t: broad ? overviewAnswer(last.content) : extractive(last.content, used) });
-        send({ type: "done", mode: broad ? "overview" : "extractive", note: why });
+        send({ type: "token", t: broad ? overviewAnswer(last.content) : edu ? educationAnswer(last.content) : extractive(last.content, used) });
+        send({ type: "done", mode: broad || edu ? "overview" : "extractive", note: why });
         controller.close();
       };
 
       if (!API_KEY) return fallback("no-key");
 
       try {
-        const res = await fetch(`${BASE_URL}/chat/completions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
-          body: JSON.stringify({
-            model: MODEL,
-            stream: true,
-            temperature: 0.2,
-            max_tokens: 700,
-            messages: [
-              { role: "system", content: SYSTEM },
-              ...messages.slice(0, -1),
-              {
-                role: "user",
-                content: `Context passages:\n\n${used.length ? contextBlock(used) : "(no relevant passages found)"}\n\nQuestion: ${last.content}`,
-              },
-            ],
-          }),
-          signal: req.signal,
-        });
-        if (!res.ok || !res.body) return fallback(`llm-${res.status}`);
+        const ask = (model: string) =>
+          fetch(`${BASE_URL}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+            body: JSON.stringify({
+              model,
+              ...modelParams(model),
+              stream: true,
+              temperature: 0.3,
+              max_tokens: 1200,
+              messages: [
+                { role: "system", content: SYSTEM },
+                ...messages.slice(0, -1),
+                {
+                  role: "user",
+                  content: `Context passages:\n\n${used.length ? contextBlock(used) : "(no relevant passages found)"}\n\nQuestion: ${last.content}`,
+                },
+              ],
+            }),
+            signal: req.signal,
+          });
+        let res = await ask(await currentModel());
+        if (!res.ok) {
+          const detail = await res.clone().text().catch(() => "");
+          if (isModelError(res.status, detail)) {
+            // the model was retired: switch to the best model the provider still offers
+            console.error(`[chat] model unavailable (${detail.slice(0, 160)}), re-selecting`);
+            res = await ask(await currentModel(true));
+          }
+        }
+        if (!res.ok || !res.body) {
+          const detail = await res.text().catch(() => "");
+          console.error(`[chat] LLM request failed: ${res.status} ${detail.slice(0, 300)}`);
+          return fallback(`llm-${res.status}`);
+        }
 
         const reader = res.body.getReader();
         const dec = new TextDecoder();
@@ -243,8 +307,9 @@ export async function POST(req: Request) {
         }
         send({ type: "done", mode: "llm" });
         controller.close();
-      } catch {
+      } catch (err) {
         if (req.signal.aborted) return controller.close();
+        console.error("[chat] LLM request error:", err);
         fallback("llm-error");
       }
     },
@@ -253,4 +318,61 @@ export async function POST(req: Request) {
   return new Response(stream, {
     headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
   });
+}
+
+// GET /api/chat: a health check for the site owner. It never reveals the key.
+// Open https://<your-site>/api/chat in a browser to see whether the AI is reachable.
+export async function GET() {
+  const info: Record<string, unknown> = {
+    keyConfigured: Boolean(API_KEY),
+    keyLooksLikeGroq: API_KEY.startsWith("gsk_"),
+    keyLength: API_KEY.length,
+    model: MODEL_OVERRIDE || resolvedModel || DEFAULT_MODEL,
+    endpoint: BASE_URL,
+  };
+  if (!API_KEY) {
+    return Response.json({
+      ...info,
+      ok: false,
+      fix: "GROQ_API_KEY is not set for this deployment. In Vercel: Settings → Environment Variables → add it for Production (and Preview), then Deployments → ⋯ → Redeploy.",
+    });
+  }
+  try {
+    const test = (model: string) =>
+      fetch(`${BASE_URL}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+        body: JSON.stringify({ model, ...modelParams(model), max_tokens: 16, messages: [{ role: "user", content: "ping" }] }),
+      });
+    let model = await currentModel();
+    let res = await test(model);
+    if (!res.ok && isModelError(res.status, await res.clone().text().catch(() => ""))) {
+      model = await currentModel(true);
+      res = await test(model);
+    }
+    info.model = model;
+    info.availableModels = await listModels();
+    const body = await res.json().catch(() => ({}));
+    const message = body?.error?.message as string | undefined;
+    return Response.json({
+      ...info,
+      ok: res.ok,
+      status: res.status,
+      ...(res.ok
+        ? { fix: "Everything works: the chat writes answers with the AI model." }
+        : {
+            providerMessage: message,
+            fix:
+              res.status === 401
+                ? "The key was rejected. Create a new key at console.groq.com/keys, replace GROQ_API_KEY in Vercel, and redeploy."
+                : res.status === 404 || /model/i.test(message ?? "")
+                  ? "The model name was not found. Set LLM_MODEL to a model listed at console.groq.com/docs/models, or remove it to use the default."
+                  : res.status === 429
+                    ? "Rate limit reached on the free tier. Wait a minute and try again."
+                    : "The AI provider returned an error. See providerMessage.",
+          }),
+    });
+  } catch (err) {
+    return Response.json({ ...info, ok: false, error: String(err), fix: "Could not reach the AI provider from the server." });
+  }
 }

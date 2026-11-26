@@ -52,7 +52,9 @@ const site: Passage[] = [
     id: `edu:${e.degree}`,
     title: `Education: ${e.degree}`,
     href: "#education",
-    text: `${e.degree} at ${e.school}, ${e.location}, ${e.period}.${e.note ? ` ${e.note}.` : ""}`,
+    text: `${e.degree} at ${e.school}, ${e.location}, ${e.period}. Status: ${
+      /^since/i.test(e.period) ? `in progress, currently studying (${e.period.toLowerCase()})` : `completed (${e.period})`
+    }.${e.note ? ` ${e.note}.` : ""}`,
   })),
 ];
 
@@ -94,6 +96,13 @@ const EXPAND: Record<string, string[]> = {
   ecg: ["anaesthesia", "hrv", "butterworth"],
   signal: ["ecg", "filter", "hrv"],
   study: ["master", "oth", "education"],
+  degree: ["education", "bachelor", "master", "bca", "status"],
+  complete: ["completed", "status", "education"],
+  finish: ["completed", "status", "education"],
+  graduate: ["completed", "bachelor", "education"],
+  bachelor: ["bca", "education"],
+  master: ["m.sc", "education"],
+  university: ["oth", "college", "education"],
   studies: ["master", "oth", "education"],
   education: ["master", "bachelor", "degree"],
   result: ["accuracy", "auc", "error"],
@@ -163,7 +172,8 @@ function bm25(q: Map<string, number>, i: number) {
     s += w * idf(t) * ((f * (K1 + 1)) / (f + K1 * (1 - B + (B * len) / avgLen)));
     if (titleTokens[i].has(t)) s += w * idf(t) * 0.6;
   });
-  return s;
+  // curated site records are concise and authoritative for questions about Sarath himself
+  return passages[i].trusted ? s * 1.25 : s;
 }
 
 // ---------- RFC guard ----------
@@ -239,4 +249,12 @@ export function overview(): Retrieved[] {
     .filter((p): p is Passage => !!p)
     .slice(0, 6)
     .map((p, i) => ({ ...p, score: 1 - i * 0.08, rfc: 0, flagged: false }));
+}
+
+/** Questions about his studies: the education records, newest first. */
+export function educationSet(): Retrieved[] {
+  return education
+    .map((e) => passages.find((p) => p.id === `edu:${e.degree}`))
+    .filter((p): p is Passage => !!p)
+    .map((p, i) => ({ ...p, score: 1 - i * 0.1, rfc: 0, flagged: false }));
 }
