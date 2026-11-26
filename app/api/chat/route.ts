@@ -61,7 +61,7 @@ function extractive(q: string, docs: Retrieved[]) {
   // score sentences by the rarity (IDF) of the query words they contain, at most one per passage
   const scored = docs.slice(0, 4).flatMap((d, i) =>
     d.text
-      .split(/(?<!\b(?:Pvt|Ltd|Dr|Prof|Eq|Fig|vs|etc|No|approx))(?<=[.!?])\s+(?=[A-Z0-9])/)
+      .split(/(?<!\b(?:Pvt|Ltd|Dr|Prof|Eq|Fig|vs|etc|No|approx)\.)(?<=[.!?])\s+(?=[A-Z0-9])/)
       // skip fragments that start mid-sentence (passages overlap at arbitrary words)
       .filter((s) => /^[A-Z0-9"“(]/.test(s))
       .filter((s) => s.length > 25 && s.length < 360 && !/@|Faculty|Author|Exam ID|Submitted|Figure \d|Table \d/i.test(s))
