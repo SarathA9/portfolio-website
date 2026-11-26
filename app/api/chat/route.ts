@@ -16,7 +16,12 @@ import { profile, education, experience, research } from "@/lib/data";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const API_KEY = process.env.GROQ_API_KEY || process.env.LLM_API_KEY || "";
+// tolerate common paste mistakes: spaces, quotes, or a "Bearer " prefix
+const API_KEY = (process.env.GROQ_API_KEY || process.env.LLM_API_KEY || "")
+  .trim()
+  .replace(/^["']|["']$/g, "")
+  .replace(/^Bearer\s+/i, "")
+  .trim();
 const BASE_URL = (process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/$/, "");
 const MODEL = process.env.LLM_MODEL || "llama-3.3-70b-versatile";
 
@@ -236,7 +241,11 @@ export async function POST(req: Request) {
           }),
           signal: req.signal,
         });
-        if (!res.ok || !res.body) return fallback(`llm-${res.status}`);
+        if (!res.ok || !res.body) {
+          const detail = await res.text().catch(() => "");
+          console.error(`[chat] LLM request failed: ${res.status} ${detail.slice(0, 300)}`);
+          return fallback(`llm-${res.status}`);
+        }
 
         const reader = res.body.getReader();
         const dec = new TextDecoder();
@@ -260,8 +269,9 @@ export async function POST(req: Request) {
         }
         send({ type: "done", mode: "llm" });
         controller.close();
-      } catch {
+      } catch (err) {
         if (req.signal.aborted) return controller.close();
+        console.error("[chat] LLM request error:", err);
         fallback("llm-error");
       }
     },
@@ -270,4 +280,52 @@ export async function POST(req: Request) {
   return new Response(stream, {
     headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
   });
+}
+
+// GET /api/chat: a health check for the site owner. It never reveals the key.
+// Open https://<your-site>/api/chat in a browser to see whether the AI is reachable.
+export async function GET() {
+  const info: Record<string, unknown> = {
+    keyConfigured: Boolean(API_KEY),
+    keyLooksLikeGroq: API_KEY.startsWith("gsk_"),
+    keyLength: API_KEY.length,
+    model: MODEL,
+    endpoint: BASE_URL,
+  };
+  if (!API_KEY) {
+    return Response.json({
+      ...info,
+      ok: false,
+      fix: "GROQ_API_KEY is not set for this deployment. In Vercel: Settings → Environment Variables → add it for Production (and Preview), then Deployments → ⋯ → Redeploy.",
+    });
+  }
+  try {
+    const res = await fetch(`${BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+      body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+    });
+    const body = await res.json().catch(() => ({}));
+    const message = body?.error?.message as string | undefined;
+    return Response.json({
+      ...info,
+      ok: res.ok,
+      status: res.status,
+      ...(res.ok
+        ? { fix: "Everything works: the chat writes answers with the AI model." }
+        : {
+            providerMessage: message,
+            fix:
+              res.status === 401
+                ? "The key was rejected. Create a new key at console.groq.com/keys, replace GROQ_API_KEY in Vercel, and redeploy."
+                : res.status === 404 || /model/i.test(message ?? "")
+                  ? "The model name was not found. Set LLM_MODEL to a model listed at console.groq.com/docs/models, or remove it to use the default."
+                  : res.status === 429
+                    ? "Rate limit reached on the free tier. Wait a minute and try again."
+                    : "The AI provider returned an error. See providerMessage.",
+          }),
+    });
+  } catch (err) {
+    return Response.json({ ...info, ok: false, error: String(err), fix: "Could not reach the AI provider from the server." });
+  }
 }
